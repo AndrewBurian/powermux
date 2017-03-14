@@ -79,10 +79,20 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	// save this node as part of the path
 	ex.pattern = append(ex.pattern, r.pattern)
 
-	// first save all the middleware
+	// save all the middleware
 	ex.middleware = append(ex.middleware, r.middleware...)
 
-	// ensure this is not the bottom of the path
+	// save not found handler
+	if h, ok := r.handlers[notFound]; ok {
+		ex.notFound = h
+	}
+
+	// save options handler
+	if h, ok := r.handlers[http.MethodOptions]; ok {
+		ex.options = h
+	}
+
+	// check if this is the bottom of the path
 	if len(pathParts) == 1 {
 
 		// hit the bottom of the tree, see if we have a handler to offer
