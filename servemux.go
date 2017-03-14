@@ -1,6 +1,7 @@
 package powermux
 
 import (
+	"context"
 	"net/http"
 	"strings"
 )
@@ -9,6 +10,18 @@ import (
 type ServeMux struct {
 	NotFound  http.Handler
 	baseRoute *Route
+}
+
+// ctxKey is the key type used for path parameters in the request context
+type ctxKey string
+
+// GetPathParams gets named path parameters and their values from the request
+//
+// the path '/users/:name' given '/users/andrew' will have `GetPathParams(r, "name")` => `"andrew"`
+// unset values return an empty string
+func GetPathParam(req *http.Request, name string) (value string) {
+	name, _ = req.Context().Value(ctxKey(name)).(string)
+	return
 }
 
 func NewServeMux() *ServeMux {
@@ -21,22 +34,24 @@ func NewServeMux() *ServeMux {
 
 func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
-	// Get the handler for this request
-	handler, _, _ := s.HandlerAndMiddleware(req)
+	// Get the route execution
+	ex := s.baseRoute.execute(req.Method, req.URL.Path)
 
 	// If there is no handler, run the not found handler
-	if handler == nil {
-		s.NotFound.ServeHTTP(rw, req)
-		return
+	if ex.handler == nil {
+		ex.handler = ex.notFound
 	}
 
-	// run all the middleware sequentially
-	//for middleware := range middlewares {
-	//todo this logic is fucked
-	//}
+	// set all the path params
+	if len(ex.params) > 0 {
+		var ctx context.Context
+		for key, val := range ex.params {
+			ctx = context.WithValue(req.Context(), ctxKey(key), val)
+		}
+		req = req.WithContext(ctx)
+	}
 
-	// run the handler
-	handler.ServeHTTP(rw, req)
+	// todo Run a middleware/handler closure to nest all middleware
 }
 
 func (s *ServeMux) Handle(pattern string, handler http.Handler) {
@@ -55,10 +70,15 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
 
 	// Get the route execution
-	ex := s.baseRoute.execute(r.Method, r.RequestURI)
+	ex := s.baseRoute.execute(r.Method, r.URL.Path)
 
 	// reconstruct the path
 	pattern := strings.Join(ex.pattern, "/")
+
+	// fall back on not found handler if necessary
+	if ex.handler == nil {
+		ex.handler = ex.notFound
+	}
 
 	return ex.handler, ex.middleware, pattern
 }

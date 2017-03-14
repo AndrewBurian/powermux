@@ -14,7 +14,6 @@ const (
 type routeExecution struct {
 	pattern    []string
 	params     map[string]string
-	options    http.Handler
 	notFound   http.Handler
 	middleware []Middleware
 	handler    http.Handler
@@ -88,8 +87,10 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	}
 
 	// save options handler
-	if h, ok := r.handlers[http.MethodOptions]; ok {
-		ex.options = h
+	if method == http.MethodOptions {
+		if h, ok := r.handlers[http.MethodOptions]; ok {
+			ex.handler = h
+		}
 	}
 
 	// check if this is the bottom of the path
