@@ -37,7 +37,7 @@ type Route struct {
 	handlers map[string]http.Handler
 }
 
-func (r *Route) execute(method, pattern string) (*routeExecution, bool) {
+func (r *Route) execute(method, pattern string) *routeExecution {
 
 	pathParts := strings.Split(pattern, "/")
 
@@ -49,10 +49,10 @@ func (r *Route) execute(method, pattern string) (*routeExecution, bool) {
 	}
 
 	// Fill the execution
-	found := r.getExecution(method, pathParts, ex)
+	r.getExecution(method, pathParts, ex)
 
 	// return the result
-	return ex, found
+	return ex
 }
 
 func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) bool {

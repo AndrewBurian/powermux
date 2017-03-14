@@ -1,6 +1,9 @@
 package powermux
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // ServerMux is the multiplexer for http requests
 type ServeMux struct {
@@ -50,8 +53,14 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 }
 
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
-	//todo
-	return nil, nil, ""
+
+	// Get the route execution
+	ex := s.baseRoute.execute(r.Method, r.RequestURI)
+
+	// reconstruct the path
+	pattern := strings.Join(ex.pattern, "/")
+
+	return ex.handler, ex.middleware, pattern
 }
 
 func (s *ServeMux) Route(pattern string) *Route {
