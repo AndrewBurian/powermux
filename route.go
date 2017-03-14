@@ -97,11 +97,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	if len(pathParts) == 1 {
 
 		// hit the bottom of the tree, see if we have a handler to offer
-		if h, ok := r.handlers[method]; ok {
-			ex.handler = h
-			return true
-		}
-		if h, ok := r.handlers[methodAny]; ok {
+		if h := getHandler(method, r.handlers); h != nil {
 			ex.handler = h
 			return true
 		}
@@ -120,13 +116,9 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 	// if we're a rooted subtree, we can still return
 	if r.isRoot {
-		if h, ok := r.handlers[method]; ok {
+		if h := getHandler(method, r.handlers); h != nil {
 			ex.handler = h
 			return true
-		}
-		if h, ok := r.handlers[methodAny]; ok {
-			ex.handler = h
-			return false
 		}
 		// no method found for this subtree
 		return false
@@ -134,6 +126,33 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 	// children have nothing to offer and we are not the target
 	return false
+}
+
+// getHandler is a convenience function for choosing a handler from a map of options
+// Order of precedence:
+// 1. An exact method match
+// 2. HEAD requests can use GET handlers
+// 3. The ANY handler
+func getHandler(method string, handlers map[string]http.Handler) http.Handler {
+	// check specific method match
+	if h, ok := handlers[method]; ok {
+		return h
+	}
+
+	// if this is a HEAD we can fall back on GET
+	if method == http.MethodHead {
+		if h, ok := handlers[http.MethodGet]; ok {
+			return h
+		}
+	}
+
+	// check the ANY handler
+	if h, ok := handlers[methodAny]; ok {
+		return h
+	}
+
+	// no handler found
+	return nil
 }
 
 // Route walks down the route tree following pattern
