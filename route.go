@@ -5,8 +5,20 @@ import (
 	"strings"
 )
 
-const methodAny = "ANY"
-const notFound = "NOT_FOUND"
+const (
+	methodAny = "ANY"
+	notFound  = "NOT_FOUND"
+)
+
+// routeExecution is the complete instructions for running serve on a route
+type routeExecution struct {
+	pattern    []string
+	params     map[string]string
+	options    http.Handler
+	notFound   http.Handler
+	middleware []Middleware
+	handler    http.Handler
+}
 
 type Route struct {
 	// the pattern our node matches
@@ -25,24 +37,32 @@ type Route struct {
 	handlers map[string]http.Handler
 }
 
-func (r *Route) get(method, pattern string) (http.Handler, []Middleware, map[string]string) {
-	middleware := make([]Middleware, 0)
+func (r *Route) execute(method, pattern string) (*routeExecution, bool) {
+
 	pathParts := strings.Split(pattern, "/")
-	pathParams := make(map[string]string)
 
-	handler := r.findAll(method, pathParts, &middleware, pathParams)
+	// Create a new routeExecution
+	ex := &routeExecution{
+		pattern:    make([]string, 0, len(pathParts)),
+		middleware: make([]Middleware, 0),
+		params:     make(map[string]string),
+	}
 
-	return handler, middleware, pathParams
+	// Fill the execution
+	found := r.getExecution(method, pathParts, ex)
+
+	// return the result
+	return ex, found
 }
 
-func (r *Route) findAll(method string, pathParts []string, mid *[]Middleware, params map[string]string) http.Handler {
+func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) bool {
 
 	var match bool
 
 	// If this node is a path parameter, we match any string
 	if r.isParam {
 		// save the path parameter
-		params[r.paramName] = pathParts[0]
+		ex.params[r.paramName] = pathParts[0]
 		match = true
 	}
 
@@ -56,49 +76,56 @@ func (r *Route) findAll(method string, pathParts []string, mid *[]Middleware, pa
 		return nil
 	}
 
+	// save this node as part of the path
+	ex.pattern = append(ex.pattern, r.pattern)
+
 	// first save all the middleware
-	*mid = append(*mid, r.middleware...)
+	ex.middleware = append(ex.middleware, r.middleware...)
 
 	// ensure this is not the bottom of the path
 	if len(pathParts) == 1 {
 
 		// hit the bottom of the tree, see if we have a handler to offer
 		if h, ok := r.handlers[method]; ok {
-			return h
+			ex.handler = h
+			return true
 		}
 		if h, ok := r.handlers[methodAny]; ok {
-			return h
+			ex.handler = h
+			return true
 		}
 
 		// end of the line, no handlers found
-		return nil
+		return false
 
 	}
 
 	// iterate over our children looking for deeper to go
 	for _, child := range r.children {
-		if h := child.findAll(method, pathParts[1:], mid, params); h != nil {
-			return h
+		if found := child.getExecution(method, pathParts[1:], ex); found {
+			return found
 		}
 	}
 
 	// if we're a rooted subtree, we can still return
 	if r.isRoot {
 		if h, ok := r.handlers[method]; ok {
-			return h
+			ex.handler = h
+			return true
 		}
 		if h, ok := r.handlers[methodAny]; ok {
-			return h
+			ex.handler = h
+			return false
 		}
 		// no method found for this subtree
-		return nil
+		return false
 	}
 
 	// children have nothing to offer and we are not the target
-	return nil
+	return false
 }
 
-// Creates and finds all in one go
+// Route walks down the route tree following pattern
 func (r *Route) Route(pattern string) *Route {
 
 	pattern = strings.TrimLeft(pattern, "/")
@@ -133,6 +160,7 @@ func (r *Route) Route(pattern string) *Route {
 	return r.create(path)
 }
 
+// Create descends the tree following path, creating nodes as needed and returns the target node
 func (r *Route) create(path []string) *Route {
 
 	// ensure this path matches us

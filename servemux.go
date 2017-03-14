@@ -4,7 +4,7 @@ import "net/http"
 
 // ServerMux is the multiplexer for http requests
 type ServeMux struct {
-	NotFound http.Handler
+	NotFound  http.Handler
 	baseRoute *Route
 }
 
@@ -29,7 +29,7 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// run all the middleware sequentially
 	//for middleware := range middlewares {
-		//todo this logic is fucked
+	//todo this logic is fucked
 	//}
 
 	// run the handler
@@ -50,9 +50,10 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 }
 
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
+	//todo
 	return nil, nil, ""
 }
 
 func (s *ServeMux) Route(pattern string) *Route {
-	return nil
+	return s.baseRoute.Route(pattern)
 }
