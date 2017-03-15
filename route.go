@@ -36,6 +36,17 @@ type Route struct {
 	handlers map[string]http.Handler
 }
 
+// newRoute allocates all the structures required for a route node
+// default pattern is "/"
+func newRoute() *Route {
+	return &Route{
+		pattern:    "/",
+		handlers:   make(map[string]http.Handler),
+		middleware: make([]Middleware, 0),
+		children:   make([]*Route, 0),
+	}
+}
+
 func (r *Route) execute(method, pattern string) *routeExecution {
 
 	pathParts := strings.Split(pattern, "/")
@@ -97,7 +108,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	if len(pathParts) == 1 {
 
 		// hit the bottom of the tree, see if we have a handler to offer
-		if h := getHandler(method, r.handlers); h != nil {
+		if h := r.getHandler(method); h != nil {
 			ex.handler = h
 			return true
 		}
@@ -116,7 +127,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 	// if we're a rooted subtree, we can still return
 	if r.isRoot {
-		if h := getHandler(method, r.handlers); h != nil {
+		if h := r.getHandler(method); h != nil {
 			ex.handler = h
 			return true
 		}
@@ -128,31 +139,33 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	return false
 }
 
-// getHandler is a convenience function for choosing a handler from a map of options
+// getHandler is a convenience function for choosing a handler from the route's map of options
 // Order of precedence:
 // 1. An exact method match
 // 2. HEAD requests can use GET handlers
 // 3. The ANY handler
-func getHandler(method string, handlers map[string]http.Handler) http.Handler {
+// 4. A generated Method Not Allowed response
+func (r *Route) getHandler(method string) http.Handler {
 	// check specific method match
-	if h, ok := handlers[method]; ok {
+	if h, ok := r.handlers[method]; ok {
 		return h
 	}
 
 	// if this is a HEAD we can fall back on GET
 	if method == http.MethodHead {
-		if h, ok := handlers[http.MethodGet]; ok {
+		if h, ok := r.handlers[http.MethodGet]; ok {
 			return h
 		}
 	}
 
 	// check the ANY handler
-	if h, ok := handlers[methodAny]; ok {
+	if h, ok := r.handlers[methodAny]; ok {
 		return h
 	}
 
-	// no handler found
-	return nil
+	// last ditch effort is to generate our own method not allowed handler
+	// this is regenerated each time in case routes are added during runtime
+	return r.methodNotAllowed()
 }
 
 // Route walks down the route tree following pattern
@@ -212,9 +225,7 @@ func (r *Route) create(path []string) *Route {
 	}
 
 	// child can't create it, so we will
-	newRoute := &Route{
-		handlers: make(map[string]http.Handler),
-	}
+	newRoute := newRoute()
 
 	// save child
 	r.children = append(r.children, newRoute)
