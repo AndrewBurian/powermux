@@ -26,9 +26,7 @@ func GetPathParam(req *http.Request, name string) (value string) {
 
 func NewServeMux() *ServeMux {
 	return &ServeMux{
-		baseRoute: &Route{
-			pattern: "/",
-		},
+		baseRoute: newRoute(),
 	}
 }
 

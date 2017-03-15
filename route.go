@@ -108,13 +108,8 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	if len(pathParts) == 1 {
 
 		// hit the bottom of the tree, see if we have a handler to offer
-		if h := r.getHandler(method); h != nil {
-			ex.handler = h
-			return true
-		}
-
-		// end of the line, no handlers found
-		return false
+		ex.handler = r.getHandler(method)
+		return true
 
 	}
 
@@ -125,18 +120,12 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 		}
 	}
 
-	// if we're a rooted subtree, we can still return
+	// if we're a rooted subtree, we can still use our handler
 	if r.isRoot {
-		if h := r.getHandler(method); h != nil {
-			ex.handler = h
-			return true
-		}
-		// no method found for this subtree
-		return false
+		ex.handler = r.getHandler(method)
 	}
 
-	// children have nothing to offer and we are not the target
-	return false
+	return true
 }
 
 // getHandler is a convenience function for choosing a handler from the route's map of options
