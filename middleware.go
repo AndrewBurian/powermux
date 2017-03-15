@@ -15,10 +15,14 @@ func (m MiddlewareFunc) ServeHTTPMiddleware(rw http.ResponseWriter, req *http.Re
 	m(rw, req, n)
 }
 
+// Middleware handles HTTP requests and optionally passes them along to the next handler in the chain
 type Middleware interface {
 	ServeHTTPMiddleware(http.ResponseWriter, *http.Request, NextMiddlewareFunc)
 }
 
+// getNextMiddleware returns the first middleware of a recursive closure.
+// The returned middleware will have the next middleware in the array available to it as a parameter
+// and the last middleware will have the final handler
 func getNextMiddleware(mids []Middleware, h http.Handler) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if len(mids) > 0 {
