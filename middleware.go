@@ -18,3 +18,13 @@ func (m MiddlewareFunc) ServeHTTPMiddleware(rw http.ResponseWriter, req *http.Re
 type Middleware interface {
 	ServeHTTPMiddleware(http.ResponseWriter, *http.Request, NextMiddlewareFunc)
 }
+
+func getNextMiddleware(mids []Middleware, h http.Handler) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if len(mids) > 0 {
+			mids[0].ServeHTTPMiddleware(w, r, getNextMiddleware(mids[1:], h))
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	}
+}

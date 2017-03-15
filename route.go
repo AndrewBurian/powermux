@@ -72,7 +72,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 	// if we don't match, return
 	if !match {
-		return nil
+		return false
 	}
 
 	// save this node as part of the path

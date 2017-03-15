@@ -51,7 +51,9 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		req = req.WithContext(ctx)
 	}
 
-	// todo Run a middleware/handler closure to nest all middleware
+	// Run a middleware/handler closure to nest all middleware
+	f := getNextMiddleware(ex.middleware, ex.handler)
+	f(rw, req)
 }
 
 func (s *ServeMux) Handle(pattern string, handler http.Handler) {
