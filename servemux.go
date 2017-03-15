@@ -62,6 +62,11 @@ func (s *ServeMux) Handle(pattern string, handler http.Handler) {
 	s.Route(pattern).Any(handler)
 }
 
+// Handle adds middleware for the given pattern.
+func (s *ServeMux) Middleware(pattern string, middleware Middleware) {
+	s.Route(pattern).Middleware(middleware)
+}
+
 // HandleFunc registers the handler function for the given pattern.
 func (s *ServeMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	s.Handle(pattern, http.HandlerFunc(handler))
