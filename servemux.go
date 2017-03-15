@@ -6,16 +6,15 @@ import (
 	"strings"
 )
 
-// ServerMux is the multiplexer for http requests
+// ServeMux is the multiplexer for http requests
 type ServeMux struct {
-	NotFound  http.Handler
 	baseRoute *Route
 }
 
 // ctxKey is the key type used for path parameters in the request context
 type ctxKey string
 
-// GetPathParams gets named path parameters and their values from the request
+// GetPathParam gets named path parameters and their values from the request
 //
 // the path '/users/:name' given '/users/andrew' will have `GetPathParams(r, "name")` => `"andrew"`
 // unset values return an empty string
@@ -24,12 +23,16 @@ func GetPathParam(req *http.Request, name string) (value string) {
 	return
 }
 
+// NewServeMux creates a new multiplexer, and sets up a default not found handler
 func NewServeMux() *ServeMux {
-	return &ServeMux{
+	s := &ServeMux{
 		baseRoute: newRoute(),
 	}
+	s.NotFound(http.NotFoundHandler())
+	return s
 }
 
+// ServeHTTP dispatches the request to the handler whose pattern most closely matches the request URL.
 func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Get the route execution
@@ -54,19 +57,32 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	f(rw, req)
 }
 
+// Handle registers the handler for the given pattern. If a handler already exists for pattern it is overwritten.
 func (s *ServeMux) Handle(pattern string, handler http.Handler) {
 	s.Route(pattern).Any(handler)
 }
 
+// HandleFunc registers the handler function for the given pattern.
 func (s *ServeMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	s.Handle(pattern, http.HandlerFunc(handler))
 }
 
+// Handler returns the handler to use for the given request, consulting r.Method, r.Host, and r.URL.Path.
+// It always returns a non-nil handler. If the path is not in its canonical form, the handler will be an
+// internally-generated handler that redirects to the canonical path.
+//
+// Handler also returns the registered pattern that matches the request or, in the case of internally-generated
+// redirects, the pattern that will match after following the redirect.
+//
+// If there is no registered handler that applies to the request, Handler returns a “page not found” handler
+// and an empty pattern.
 func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 	handler, _, pattern := s.HandlerAndMiddleware(r)
 	return handler, pattern
 }
 
+// HandlerAndMiddleware returns the same as Handler, but with the addition of an array of middleware, in the order
+// they would have been executed
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
 
 	// Get the route execution
@@ -83,6 +99,12 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 	return ex.handler, ex.middleware, pattern
 }
 
+// Route returns the route from the root of the domain to the given pattern
 func (s *ServeMux) Route(pattern string) *Route {
 	return s.baseRoute.Route(pattern)
+}
+
+// NotFound sets the default not found handler for the server
+func (s *ServeMux) NotFound(handler http.Handler) {
+	s.baseRoute.NotFound(handler)
 }

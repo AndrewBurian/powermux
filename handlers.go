@@ -5,7 +5,9 @@ import (
 	"strings"
 )
 
-// Redirect adds a redirect handler for ANY method for this route
+// Redirect adds a redirect handler for ANY method for this route.
+//
+// Redirects use either http.StatusPermanentRedirect or http.StatusTemporaryRedirect as their code.
 func (r *Route) Redirect(url string, permanent bool) *Route {
 	var h http.Handler
 	if permanent {
@@ -18,7 +20,9 @@ func (r *Route) Redirect(url string, permanent bool) *Route {
 
 type methodNotAllowedHandler []string
 
-func (h methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
+// ServeHTTP responses with a Method Not Allowed and includes an "Allow" header containing the
+// valid methods for this route.
+func (h methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Sets the Allow header
 	w.Header().Add("Allow", strings.Join(h, ", "))
 	w.WriteHeader(http.StatusMethodNotAllowed)
