@@ -20,7 +20,7 @@ type routeExecution struct {
 }
 
 // A Route represents a specific path for a request.
-// Routes can be absolute paths, rooted subtrees, or path parameters that accept any string.
+// Routes can be absolute paths, rooted subtrees, or path parameters that accept any stringRoutes.
 type Route struct {
 	// the pattern our node matches
 	pattern string
@@ -28,8 +28,8 @@ type Route struct {
 	isParam bool
 	// the name of our path parameter
 	paramName string
-	// if we are a rooted sub tree '/dir/'
-	isRoot bool
+	// if we are a rooted sub tree '/dir/*'
+	isWildcard bool
 	// the array of middleware this node invokes
 	middleware []Middleware
 	// child nodes
@@ -38,11 +38,10 @@ type Route struct {
 	handlers map[string]http.Handler
 }
 
-// newRoute allocates all the structures required for a route node
-// default pattern is "/"
+// newRoute allocates all the structures required for a route node.
+// Default pattern is "" which matches only the top level node.
 func newRoute() *Route {
 	return &Route{
-		pattern:    "/",
 		handlers:   make(map[string]http.Handler),
 		middleware: make([]Middleware, 0),
 		children:   make([]*Route, 0),
@@ -76,7 +75,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 	var match bool
 
-	// If this node is a path parameter, we match any string
+	// If this node is a path parameter, we match any stringRoutes
 	if r.isParam {
 		// save the path parameter
 		ex.params[r.paramName] = pathParts[0]
@@ -85,6 +84,11 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 	// check if we're a direct match
 	if r.pattern == pathParts[0] {
+		match = true
+	}
+
+	// check if we're a wildcard
+	if r.isWildcard {
 		match = true
 	}
 
@@ -112,7 +116,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	}
 
 	// check if this is the bottom of the path
-	if len(pathParts) == 1 {
+	if len(pathParts) == 1 || r.isWildcard {
 
 		// hit the bottom of the tree, see if we have a handler to offer
 		ex.handler = r.getHandler(method)
@@ -127,11 +131,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 		}
 	}
 
-	// if we're a rooted subtree, we can still use our handler
-	if r.isRoot {
-		ex.handler = r.getHandler(method)
-	}
-
+	// even if we didn't find a handler, we were still a match
 	return true
 }
 
@@ -168,33 +168,20 @@ func (r *Route) getHandler(method string) http.Handler {
 // existing node that represents that specific path.
 func (r *Route) Route(pattern string) *Route {
 
-	pattern = strings.TrimLeft(pattern, "/")
-
-	// remove leading and trailing slash
-	trimPattern := strings.Trim(pattern, "/")
-
-	// break it up into pieces
-	parts := strings.Split(trimPattern, "/")
-
-	// if the path ended with a slash, indicating a subtree, re add it
-	if strings.HasSuffix(pattern, "/") {
-		parts = append(parts, "/")
+	// append our node name to the search if we're not root
+	if r.pattern != "" {
+		pattern = r.pattern + pattern
 	}
 
-	path := make([]string, 0, len(parts)+1)
-	// add the leading slash
-	path = append(path, "/")
+	// chop the path into pieces
+	path := strings.Split(pattern, "/")
 
-	if parts[0] != "" {
-		path = append(path, parts...)
+	// handle the case where we're the root node
+	if pattern == "/" {
+		// strings.Split will have returned ["", ""]
+		// drop one of them
+		path = path[1:]
 	}
-
-	/*
-		/     => ['/']
-		/a    => ['/', 'a']
-		/a/b  => ['/', 'a', 'b']
-		/a/b/ => ['/', 'a', 'b', '/']
-	*/
 
 	// find/create the new path
 	return r.create(path)
@@ -236,14 +223,43 @@ func (r *Route) create(path []string) *Route {
 	}
 
 	// check if this is a rooted subtree
-	if path[1] == "/" {
+	if path[1] == "*" {
 		// go no deeper
-		newRoute.isRoot = true
+		newRoute.isWildcard = true
 		return newRoute
 	}
 
 	// the cycle continues
 	return newRoute.create(path[1:])
+}
+
+// stringRoutes returns the stringRoutes representation of this route and all below it.
+func (r *Route) stringRoutes(path []string, routes *[]string) {
+	path = append(path, r.pattern)
+
+	var thisRoute string
+
+	// handle root node
+	if len(path) == 1 {
+		thisRoute = "/"
+	} else {
+		thisRoute = strings.Join(path, "/")
+	}
+
+	if len(r.handlers) > 0 {
+		thisRoute = thisRoute + " ["
+		methods := make([]string, 0, 8)
+		for method := range r.handlers {
+			methods = append(methods, method)
+		}
+		thisRoute = thisRoute + strings.Join(methods, ", ") + "]"
+		*routes = append(*routes, thisRoute)
+	}
+
+	// recursion
+	for _, child := range r.children {
+		child.stringRoutes(path, routes)
+	}
 }
 
 // Middleware adds a middleware to this Route.

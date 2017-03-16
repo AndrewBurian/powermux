@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"bytes"
 )
 
 // ServeMux is the multiplexer for http requests
@@ -17,7 +18,7 @@ type ctxKey string
 // GetPathParam gets named path parameters and their values from the request
 //
 // the path '/users/:name' given '/users/andrew' will have `GetPathParams(r, "name")` => `"andrew"`
-// unset values return an empty string
+// unset values return an empty stringRoutes
 func GetPathParam(req *http.Request, name string) (value string) {
 	name, _ = req.Context().Value(ctxKey(name)).(string)
 	return
@@ -106,10 +107,34 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 
 // Route returns the route from the root of the domain to the given pattern
 func (s *ServeMux) Route(pattern string) *Route {
+
+	//// strip the leading slash if not the root node
+	//if pattern != "/" && pattern[0] == '/' {
+	//	pattern = pattern[1:]
+	//}
+	if pattern[0] != '/' {
+		pattern = "/"+pattern
+	}
+
 	return s.baseRoute.Route(pattern)
 }
 
 // NotFound sets the default not found handler for the server
 func (s *ServeMux) NotFound(handler http.Handler) {
 	s.baseRoute.NotFound(handler)
+}
+
+// String returns a list of all routes registered with this server
+func (s *ServeMux) String() string {
+	routes := make([]string, 0)
+	path := make([]string, 0)
+	s.baseRoute.stringRoutes(path, &routes)
+
+	buf := bytes.Buffer{}
+
+	for _, route := range routes {
+		buf.WriteString(route + "\n")
+	}
+
+	return buf.String()
 }
