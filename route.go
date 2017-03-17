@@ -218,9 +218,10 @@ func (r *Route) create(path []string) *Route {
 	if strings.HasPrefix(path[1], ":") {
 		newRoute.isParam = true
 		newRoute.paramName = strings.TrimLeft(path[1], ":")
-	} else {
-		newRoute.pattern = path[1]
 	}
+
+	// set the pattern name
+	newRoute.pattern = path[1]
 
 	// check if this is a rooted subtree
 	if path[1] == "*" {
@@ -247,7 +248,7 @@ func (r *Route) stringRoutes(path []string, routes *[]string) {
 	}
 
 	if len(r.handlers) > 0 {
-		thisRoute = thisRoute + " ["
+		thisRoute = thisRoute + "\t["
 		methods := make([]string, 0, 8)
 		for method := range r.handlers {
 			methods = append(methods, method)
