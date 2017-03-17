@@ -99,3 +99,15 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 ```
 
 Path parameters that aren't found return an empty string
+
+## Wildcard patterns
+Routes may be declared with a wildcard indicator `*` at the end. 
+This will match any path that does not have a more specific handler registered.
+
+```go
+mux.Route("/static/*").Get(staticContentHandler)
+mux.Route("/static/favicon").Get(faviconGenerator)
+ 
+// requests to /static will all be mapped to static content handler
+// EXCEPT for requests to /static/favicon
+```
