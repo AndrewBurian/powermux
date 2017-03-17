@@ -34,6 +34,8 @@ type Route struct {
 	middleware []Middleware
 	// child nodes
 	children []*Route
+	// set if there's a wildcard handler child (lowest priority)
+	wildcardChild *Route
 	// the map of handlers for different methods
 	handlers map[string]http.Handler
 }
@@ -125,7 +127,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	}
 
 	// iterate over our children looking for deeper to go
-	for _, child := range r.children {
+	for _, child := range r.getChildren() {
 		if found := child.getExecution(method, pathParts[1:], ex); found {
 			return found
 		}
@@ -202,7 +204,7 @@ func (r *Route) create(path []string) *Route {
 	}
 
 	// iterate over all children looking for a place to put this
-	for _, child := range r.children {
+	for _, child := range r.getChildren() {
 		if r := child.create(path[1:]); r != nil {
 			return r
 		}
@@ -210,9 +212,6 @@ func (r *Route) create(path []string) *Route {
 
 	// child can't create it, so we will
 	newRoute := newRoute()
-
-	// save child
-	r.children = append(r.children, newRoute)
 
 	// check if it's a path param
 	if strings.HasPrefix(path[1], ":") {
@@ -227,8 +226,15 @@ func (r *Route) create(path []string) *Route {
 	if path[1] == "*" {
 		// go no deeper
 		newRoute.isWildcard = true
+
+		// save to wildcard child
+		r.wildcardChild = newRoute
+
 		return newRoute
 	}
+
+	// save the child
+	r.children = append(r.children, newRoute)
 
 	// the cycle continues
 	return newRoute.create(path[1:])
@@ -258,9 +264,19 @@ func (r *Route) stringRoutes(path []string, routes *[]string) {
 	}
 
 	// recursion
-	for _, child := range r.children {
+	for _, child := range r.getChildren() {
 		child.stringRoutes(path, routes)
 	}
+}
+
+// getChildren returns the r.children array with the wildcard handler at the end
+// if it's set
+func (r *Route) getChildren() []*Route {
+	if r.wildcardChild == nil {
+		return r.children
+	}
+
+	return append(r.children, r.wildcardChild)
 }
 
 // Middleware adds a middleware to this Route.
