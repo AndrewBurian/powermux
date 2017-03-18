@@ -114,13 +114,17 @@ mux.Route("/static/favicon").Get(faviconGenerator)
 // EXCEPT for requests to /static/favicon
 ```
 
-Declaring a wildcard route at the same level as a path parameter route will never be executed as the path parameter takes greater predenence.
+Declaring a wildcard route at the same level as a path parameter route will never be executed as the path parameter takes greater precedence.
 ```go
 mux.Route("/users/:id") // valid
 mux.Route("/users/*")   // never matched
 ```
 
-It is invalid to decare a route off of a wildcard route, and will cause the program to panic.
+More routes may be specified after a wildcard, but they will never be executed
+```go
+r1 := mux.Route("/users/*") // valid
+r1.Route("/further/paths")  // never matched
+```
 
 ## Route precedence
 If multiple routes are declared that could match a given path, they are selected in this order
