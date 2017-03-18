@@ -16,17 +16,19 @@ func TestRoute_MethodNotAllowed(t *testing.T) {
 	r.Get(http.NotFoundHandler())
 	r.Delete(http.NotFoundHandler())
 
-	// Try for a POST handler
-	h := r.getHandler(http.MethodPost)
+	ex := &routeExecution{}
 
-	if h == nil {
+	// Try for a POST handler
+	r.getHandler(http.MethodPost, ex)
+
+	if ex.handler == nil {
 		t.Fatal("Nil handler returned")
 	}
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString("Hello"))
 
-	h.ServeHTTP(rec, req)
+	ex.handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Error("Wrong method returned")

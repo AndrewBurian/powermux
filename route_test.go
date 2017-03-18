@@ -108,11 +108,11 @@ func TestRoute_RouteAddRootedTree(t *testing.T) {
 		t.Error("Where did it get children?")
 	}
 
-	if len(r1.children) != 1 {
+	if r1.wildcardChild == nil {
 		t.Fatal("R1 didn't get child")
 	}
 
-	if r1.children[0] != r2 {
+	if r1.wildcardChild != r2 {
 		t.Error("Tree built incorrectly")
 	}
 }

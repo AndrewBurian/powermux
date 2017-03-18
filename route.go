@@ -123,7 +123,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	if len(pathParts) == 1 || r.isWildcard {
 
 		// hit the bottom of the tree, see if we have a handler to offer
-		ex.handler = r.getHandler(method)
+		r.getHandler(method, ex)
 		return true
 
 	}
@@ -144,28 +144,39 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 // 1. An exact method match
 // 2. HEAD requests can use GET handlers
 // 3. The ANY handler
-// 4. A generated Method Not Allowed response
-func (r *Route) getHandler(method string) http.Handler {
+// 4. A generated Options handler if this is an options request and no previous handler is set
+// 5. A generated Method Not Allowed response
+func (r *Route) getHandler(method string, ex *routeExecution) {
 	// check specific method match
 	if h, ok := r.handlers[method]; ok {
-		return h
+		ex.handler = h
+		return
 	}
 
 	// if this is a HEAD we can fall back on GET
 	if method == http.MethodHead {
 		if h, ok := r.handlers[http.MethodGet]; ok {
-			return h
+			ex.handler = h
+			return
 		}
 	}
 
 	// check the ANY handler
 	if h, ok := r.handlers[methodAny]; ok {
-		return h
+		ex.handler = h
+		return
+	}
+
+	// generate an options handler if none is already set
+	if method == http.MethodOptions && ex.handler == nil {
+		ex.handler = r.defaultOptions()
+		return
 	}
 
 	// last ditch effort is to generate our own method not allowed handler
 	// this is regenerated each time in case routes are added during runtime
-	return r.methodNotAllowed()
+	ex.handler = r.methodNotAllowed()
+	return
 }
 
 // Route walks down the route tree following pattern and returns either a new or previously

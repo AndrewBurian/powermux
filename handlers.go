@@ -28,6 +28,10 @@ func (h methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusMethodNotAllowed)
 }
 
+type defaultOptionsHandler struct {
+	methods []string
+}
+
 // methodNotAllowed is called internally by Route to generate a 405 handler
 func (r *Route) methodNotAllowed() http.Handler {
 
@@ -45,5 +49,11 @@ func (r *Route) methodNotAllowed() http.Handler {
 		return methodNotAllowedHandler(methods)
 	}
 
+	return nil
+}
+
+// defaultOptions generates an options handler for this route
+func (r *Route) defaultOptions() http.Handler {
+	//todo not even sure if this is actually a good idea
 	return nil
 }
