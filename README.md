@@ -55,6 +55,8 @@ mux.Route("/").
 Powermux has support for any kind of middleware that uses the common `func(res, req, next)` syntax.  
 Middleware handler objects must implement the `ServeHTTPMiddleware` interface.
 
+Middleware will **always** be executed before any handlers, including default or generated not found handlers.
+
 Middleware can be added to any Route
 ```go
 mux.Route("/users").
@@ -111,3 +113,25 @@ mux.Route("/static/favicon").Get(faviconGenerator)
 // requests to /static will all be mapped to static content handler
 // EXCEPT for requests to /static/favicon
 ```
+
+Declaring a wildcard route at the same level as a path parameter route will never be executed as the path parameter takes greater predenence.
+```go
+mux.Route("/users/:id") // valid
+mux.Route("/users/*")   // never matched
+```
+
+It is invalid to decare a route off of a wildcard route, and will cause the program to panic.
+
+## Route precedence
+If multiple routes are declared that could match a given path, they are selected in this order
+1. A literal path `/users/andrew/info`
+2. A path with parameters `/users/:id/info`
+3. A wildcard path `/users/*`
+
+## Handler precedence
+When multiple handlers are declared on a single route for different methods, they are selected in this order
+1. An exact method match
+2. HEAD requests can use GET handlers
+3. The ANY handler
+4. A generated Options handler if this is an options request and no previous options handler is set above this route
+5. A generated Method Not Allowed handler

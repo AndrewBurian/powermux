@@ -1,13 +1,14 @@
 package powermux
 
 import (
-	"testing"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"io"
+	"testing"
 )
 
 type dummyHandler string
+
 func (h dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(h))
 }
@@ -50,6 +51,24 @@ func TestServeMux_WildcardPrecedence(t *testing.T) {
 
 	s.Route("/users/*").Get(wrongHandler)
 	s.Route("/users/john").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/john", nil)
+	h, _ := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+}
+
+// Ensures the wildcard handler isn't called when a path param was available
+func TestServeMux_WildcardPathPrecedence(t *testing.T) {
+	s := NewServeMux()
+
+	rightHandler := dummyHandler("right")
+	wrongHandler := dummyHandler("wrong")
+
+	s.Route("/users/*").Get(wrongHandler)
+	s.Route("/users/:id").Get(rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/john", nil)
 	h, _ := s.Handler(req)
