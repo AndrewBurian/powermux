@@ -63,3 +63,35 @@ func TestServeMux_WildcardPathPrecedence(t *testing.T) {
 		t.Error("Wrong handler returned")
 	}
 }
+
+// Ensures trailing slash redirects are working
+func TestServeMux_RedirectSlash(t *testing.T) {
+	s := NewServeMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/users/", nil)
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusPermanentRedirect {
+		t.Error("Not redirected")
+	}
+
+	if rec.HeaderMap.Get("Location") != "/users" {
+		t.Error("Mis-redirected")
+	}
+}
+
+// Ensures we don't redirect the root
+func TestServeMux_RedirectRoot(t *testing.T) {
+	s := NewServeMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusPermanentRedirect {
+		t.Error("Redirected")
+	}
+}

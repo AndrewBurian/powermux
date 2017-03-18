@@ -4,6 +4,9 @@ A drop-in replacement for Go's `http.ServeMux` with all the missing features
 PowerMux stores routes in Radix trees for fast route matching and lookup on large numbers of routes.
 
 ## Setting up PowerMux
+In all cases, powermux does not support routes with a trailing slash `/` other than the root node.
+Requests to paths that end in a slash are automatically redirected using a permanent redirection.
+
 ### Using http.ServeMux syntax
 
 You can use PowerMux exactly as you would use Go's server mux.

@@ -36,6 +36,14 @@ func NewServeMux() *ServeMux {
 // ServeHTTP dispatches the request to the handler whose pattern most closely matches the request URL.
 func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
+	// Redirect trailing slashes
+	if req.URL.Path != "/" && strings.HasSuffix(req.URL.Path, "/") {
+		req.URL.Path = strings.TrimRight(req.URL.Path, "/")
+		redirect := http.RedirectHandler(req.URL.RequestURI(), http.StatusPermanentRedirect)
+		redirect.ServeHTTP(rw, req)
+		return
+	}
+
 	// Get the route execution
 	ex := s.baseRoute.execute(req.Method, req.URL.Path)
 
