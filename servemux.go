@@ -108,10 +108,7 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 // Route returns the route from the root of the domain to the given pattern
 func (s *ServeMux) Route(pattern string) *Route {
 
-	//// strip the leading slash if not the root node
-	//if pattern != "/" && pattern[0] == '/' {
-	//	pattern = pattern[1:]
-	//}
+	// prepend a leading slash if not present
 	if pattern[0] != '/' {
 		pattern = "/"+pattern
 	}

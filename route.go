@@ -34,6 +34,8 @@ type Route struct {
 	middleware []Middleware
 	// child nodes
 	children []*Route
+	// child nodes that are path parameters
+	paramChildren []*Route
 	// set if there's a wildcard handler child (lowest priority)
 	wildcardChild *Route
 	// the map of handlers for different methods
@@ -193,7 +195,7 @@ func (r *Route) Route(pattern string) *Route {
 func (r *Route) create(path []string) *Route {
 
 	// ensure this path matches us
-	if !r.isParam && r.pattern != path[0] {
+	if r.pattern != path[0] {
 		// not us
 		return nil
 	}
@@ -213,28 +215,30 @@ func (r *Route) create(path []string) *Route {
 	// child can't create it, so we will
 	newRoute := newRoute()
 
+	// set the pattern name
+	newRoute.pattern = path[1]
+
 	// check if it's a path param
 	if strings.HasPrefix(path[1], ":") {
 		newRoute.isParam = true
 		newRoute.paramName = strings.TrimLeft(path[1], ":")
-	}
 
-	// set the pattern name
-	newRoute.pattern = path[1]
+		// save it in the correct place
+		r.paramChildren = append(r.paramChildren, newRoute)
 
-	// check if this is a rooted subtree
-	if path[1] == "*" {
-		// go no deeper
+	} else if path[1] == "*" {
+		// check if this is a rooted subtree
 		newRoute.isWildcard = true
 
 		// save to wildcard child
 		r.wildcardChild = newRoute
 
+		// go no deeper
 		return newRoute
+	} else {
+		// Just a regular child
+		r.children = append(r.children, newRoute)
 	}
-
-	// save the child
-	r.children = append(r.children, newRoute)
 
 	// the cycle continues
 	return newRoute.create(path[1:])
@@ -269,14 +273,26 @@ func (r *Route) stringRoutes(path []string, routes *[]string) {
 	}
 }
 
-// getChildren returns the r.children array with the wildcard handler at the end
-// if it's set
+// getChildren returns the all the route handler with the correct order of precedence
 func (r *Route) getChildren() []*Route {
-	if r.wildcardChild == nil {
-		return r.children
+
+	// allocate once
+	allRoutes := make([]*Route, 0, len(r.children)+len(r.paramChildren)+1)
+
+	// start with the normal routes
+	allRoutes = append(allRoutes, r.children...)
+
+	// then add the param children
+	if len(r.paramChildren) > 0 {
+		allRoutes = append(allRoutes, r.paramChildren...)
 	}
 
-	return append(r.children, r.wildcardChild)
+	// then add the wildcard child
+	if r.wildcardChild != nil {
+		allRoutes = append(allRoutes, r.wildcardChild)
+	}
+
+	return allRoutes
 }
 
 // Middleware adds a middleware to this Route.
