@@ -34,8 +34,8 @@ type Route struct {
 	middleware []Middleware
 	// child nodes
 	children []*Route
-	// child nodes that are path parameters
-	paramChildren []*Route
+	// child node for path parameters
+	paramChild *Route
 	// set if there's a wildcard handler child (lowest priority)
 	wildcardChild *Route
 	// the map of handlers for different methods
@@ -181,25 +181,35 @@ func (r *Route) getHandler(method string, ex *routeExecution) {
 
 // Route walks down the route tree following pattern and returns either a new or previously
 // existing node that represents that specific path.
-func (r *Route) Route(pattern string) *Route {
+func (r *Route) Route(path string) *Route {
+
+	// prepend a leading slash if not present
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
+	// remove the tailing slash if it is present
+	if path != "/" {
+		path = strings.TrimRight(path, "/")
+	}
 
 	// append our node name to the search if we're not root
 	if r.pattern != "" {
-		pattern = r.pattern + pattern
+		path = r.pattern + path
 	}
 
 	// chop the path into pieces
-	path := strings.Split(pattern, "/")
+	pathParts := strings.Split(path, "/")
 
 	// handle the case where we're the root node
-	if pattern == "/" {
+	if path == "/" {
 		// strings.Split will have returned ["", ""]
 		// drop one of them
-		path = path[1:]
+		pathParts = pathParts[1:]
 	}
 
 	// find/create the new path
-	return r.create(path)
+	return r.create(pathParts)
 }
 
 // Create descends the tree following path, creating nodes as needed and returns the target node
@@ -235,7 +245,7 @@ func (r *Route) create(path []string) *Route {
 		newRoute.paramName = strings.TrimLeft(path[1], ":")
 
 		// save it in the correct place
-		r.paramChildren = append(r.paramChildren, newRoute)
+		r.paramChild = newRoute
 
 	} else if path[1] == "*" {
 		// check if this is a rooted subtree
@@ -288,14 +298,14 @@ func (r *Route) stringRoutes(path []string, routes *[]string) {
 func (r *Route) getChildren() []*Route {
 
 	// allocate once
-	allRoutes := make([]*Route, 0, len(r.children)+len(r.paramChildren)+1)
+	allRoutes := make([]*Route, 0, len(r.children)+2)
 
 	// start with the normal routes
 	allRoutes = append(allRoutes, r.children...)
 
-	// then add the param children
-	if len(r.paramChildren) > 0 {
-		allRoutes = append(allRoutes, r.paramChildren...)
+	// then add the param child
+	if r.paramChild != nil {
+		allRoutes = append(allRoutes, r.paramChild)
 	}
 
 	// then add the wildcard child

@@ -128,3 +128,20 @@ func TestRoute_RouteDepth(t *testing.T) {
 		t.Log(r1)
 	}
 }
+
+func TestRoute_TrailingSlash(t *testing.T) {
+	r := newRoute()
+	r1 := r.Route("/a/")
+
+	if r1.pattern != "a" {
+		t.Error("Pattern mismatch")
+	}
+
+	if r.children[0] != r1 {
+		t.Error("Child misset")
+	}
+
+	if len(r.children[0].children) > 0 {
+		t.Error("Unexpected grandchildren")
+	}
+}

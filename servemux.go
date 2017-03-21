@@ -1,15 +1,16 @@
 package powermux
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"strings"
-	"bytes"
 )
 
 // ServeMux is the multiplexer for http requests
 type ServeMux struct {
-	baseRoute *Route
+	baseRoute  *Route
+	hostRoutes map[string]*Route
 }
 
 // ctxKey is the key type used for path parameters in the request context
@@ -27,7 +28,8 @@ func GetPathParam(req *http.Request, name string) (value string) {
 // NewServeMux creates a new multiplexer, and sets up a default not found handler
 func NewServeMux() *ServeMux {
 	s := &ServeMux{
-		baseRoute: newRoute(),
+		baseRoute:  newRoute(),
+		hostRoutes: make(map[string]*Route),
 	}
 	s.NotFound(http.NotFoundHandler())
 	return s
@@ -45,7 +47,15 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Get the route execution
-	ex := s.baseRoute.execute(req.Method, req.URL.Path)
+	var ex *routeExecution
+
+	// check if we have a host specific route tree to consult
+	hostRoute, ok := s.hostRoutes[req.URL.Host]
+	if ok {
+		ex = hostRoute.execute(req.Method, req.URL.Path)
+	} else {
+		ex = s.baseRoute.execute(req.Method, req.URL.Path)
+	}
 
 	// If there is no handler, run the not found handler
 	if ex.handler == nil {
@@ -66,19 +76,31 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	f(rw, req)
 }
 
-// Handle registers the handler for the given pattern. If a handler already exists for pattern it is overwritten.
-func (s *ServeMux) Handle(pattern string, handler http.Handler) {
-	s.Route(pattern).Any(handler)
+// Handle registers the handler for the given pattern.
+// If a handler already exists for pattern it is overwritten.
+func (s *ServeMux) Handle(path string, handler http.Handler) {
+	s.Route(path).Any(handler)
 }
 
-// Handle adds middleware for the given pattern.
-func (s *ServeMux) Middleware(pattern string, middleware Middleware) {
-	s.Route(pattern).Middleware(middleware)
+// HandleHost registers the handler for the given pattern and host.
+// If a handler already exists for pattern it is overwritten.
+func (s *ServeMux) HandleHost(host, path string, handler http.Handler) {
+	s.RouteHost(path, host).Any(handler)
+}
+
+// Middleware adds middleware for the given pattern.
+func (s *ServeMux) Middleware(path string, middleware Middleware) {
+	s.Route(path).Middleware(middleware)
+}
+
+// MiddlewareHost adds middleware for the given pattern.
+func (s *ServeMux) MiddlewareHost(host, path string, middleware Middleware) {
+	s.RouteHost(host, path).Middleware(middleware)
 }
 
 // HandleFunc registers the handler function for the given pattern.
-func (s *ServeMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	s.Handle(pattern, http.HandlerFunc(handler))
+func (s *ServeMux) HandleFunc(path string, handler func(http.ResponseWriter, *http.Request)) {
+	s.Handle(path, http.HandlerFunc(handler))
 }
 
 // Handler returns the handler to use for the given request, consulting r.Method, r.Host, and r.URL.Path.
@@ -100,7 +122,12 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
 
 	// Get the route execution
-	ex := s.baseRoute.execute(r.Method, r.URL.Path)
+	var ex *routeExecution
+	if route, ok := s.hostRoutes[r.URL.Host]; ok {
+		ex = route.execute(r.Method, r.URL.Path)
+	} else {
+		ex = s.baseRoute.execute(r.Method, r.URL.Path)
+	}
 
 	// reconstruct the path
 	pattern := strings.Join(ex.pattern, "/")
@@ -114,14 +141,18 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 }
 
 // Route returns the route from the root of the domain to the given pattern
-func (s *ServeMux) Route(pattern string) *Route {
+func (s *ServeMux) Route(path string) *Route {
+	return s.baseRoute.Route(path)
+}
 
-	// prepend a leading slash if not present
-	if pattern[0] != '/' {
-		pattern = "/"+pattern
+// RouteHost returns the route from the root of the domain to the given pattern on a specific domain
+func (s *ServeMux) RouteHost(host, path string) *Route {
+	r, ok := s.hostRoutes[host]
+	if !ok {
+		r = newRoute()
+		s.hostRoutes[host] = r
 	}
-
-	return s.baseRoute.Route(pattern)
+	return r.Route(path)
 }
 
 // NotFound sets the default not found handler for the server
