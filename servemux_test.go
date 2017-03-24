@@ -27,10 +27,14 @@ func TestServeMux_ParamPrecedence(t *testing.T) {
 	s.Route("/users/:id/detail").Get(wrongHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/jim/info", nil)
-	h, _ := s.Handler(req)
+	h, path := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
+	}
+
+	if path != "/users/jim/info" {
+		t.Error("Wrong path name")
 	}
 }
 
@@ -42,10 +46,14 @@ func TestServeMux_WildcardPrecedence(t *testing.T) {
 	s.Route("/users/john").Get(rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/john", nil)
-	h, _ := s.Handler(req)
+	h, str := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
+	}
+
+	if str != "/users/john" {
+		t.Error("Wrong path name")
 	}
 }
 
@@ -93,5 +101,45 @@ func TestServeMux_RedirectRoot(t *testing.T) {
 
 	if rec.Code == http.StatusPermanentRedirect {
 		t.Error("Redirected")
+	}
+}
+
+// Ensure the correct path is matched 1 level
+func TestServeMux_HandleCorrectRoute(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a").Get(rightHandler)
+	s.Route("/b").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong string path")
+	}
+}
+
+// Ensure the correct path is matched at two levels
+func TestServeMux_HandleCorrectRouteAfterParam(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/base/:id/a").Get(rightHandler)
+	s.Route("/base/:id/b").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/base/llama/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/base/:id/a" {
+		t.Error("Wrong string path")
 	}
 }
