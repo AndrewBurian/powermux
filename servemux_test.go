@@ -143,3 +143,64 @@ func TestServeMux_HandleCorrectRouteAfterParam(t *testing.T) {
 		t.Error("Wrong string path")
 	}
 }
+
+// Ensure the correct method is matched
+func TestServeMux_HandleCorrectMethod(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a").Post(rightHandler)
+	s.Route("/a").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodPost, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong string path")
+	}
+}
+
+// Ensure the correct method is matched for any
+func TestServeMux_HandleCorrectMethodAny(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a").Post(wrongHandler)
+	s.Route("/a").Get(wrongHandler)
+	s.Route("/a").Any(rightHandler)
+
+	req := httptest.NewRequest(http.MethodDelete, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong string path")
+	}
+}
+
+// Ensure the correct method is matched for head
+func TestServeMux_HandleCorrectMethodHead(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a").Post(wrongHandler)
+	s.Route("/a").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodHead, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong string path")
+	}
+}
