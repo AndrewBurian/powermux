@@ -204,3 +204,82 @@ func TestServeMux_HandleCorrectMethodHead(t *testing.T) {
 		t.Error("Wrong string path")
 	}
 }
+
+// Ensure a wildcard matches
+func TestServeMux_HandleWildcard(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a/*").Get(rightHandler)
+	s.Route("/b").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/a/llama", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a/*" {
+		t.Error("Wrong string path")
+	}
+}
+
+// Ensure a wildcard matches at depth
+func TestServeMux_HandleWildcardDepth(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a/*").Get(rightHandler)
+	s.Route("/b").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/a/llama/4/5", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a/*" {
+		t.Error("Wrong string path")
+	}
+}
+
+// Ensure order doesn't matter
+func TestServeMux_HandleOrder(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a").Get(wrongHandler)
+	s.Route("/b").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/b", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/b" {
+		t.Error("Wrong string path")
+	}
+}
+
+func TestServeMux_HandleOptionsAtDepth(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/a").Options(rightHandler)
+	s.Route("/a/b").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodOptions, "/a/b", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returnered")
+	}
+
+	if path != "/a/b" {
+		t.Error("Wrong string path")
+	}
+}

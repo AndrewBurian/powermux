@@ -175,7 +175,10 @@ func (r *Route) getHandler(method string, ex *routeExecution) {
 
 	// last ditch effort is to generate our own method not allowed handler
 	// this is regenerated each time in case routes are added during runtime
-	ex.handler = r.methodNotAllowed()
+	// not generated if a previous handler is already set
+	if ex.handler == nil {
+		ex.handler = r.methodNotAllowed()
+	}
 	return
 }
 
