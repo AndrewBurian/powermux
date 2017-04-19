@@ -34,7 +34,7 @@ func TestServeMux_ParamPrecedence(t *testing.T) {
 	}
 
 	if path != "/users/jim/info" {
-		t.Error("Wrong path name")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -46,14 +46,14 @@ func TestServeMux_WildcardPrecedence(t *testing.T) {
 	s.Route("/users/john").Get(rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/john", nil)
-	h, str := s.Handler(req)
+	h, path := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
 	}
 
-	if str != "/users/john" {
-		t.Error("Wrong path name")
+	if path != "/users/john" {
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -120,7 +120,7 @@ func TestServeMux_HandleCorrectRoute(t *testing.T) {
 	}
 
 	if path != "/a" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -140,7 +140,7 @@ func TestServeMux_HandleCorrectRouteAfterParam(t *testing.T) {
 	}
 
 	if path != "/base/:id/a" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestServeMux_HandleCorrectMethod(t *testing.T) {
 	}
 
 	if path != "/a" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -181,7 +181,7 @@ func TestServeMux_HandleCorrectMethodAny(t *testing.T) {
 	}
 
 	if path != "/a" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -201,7 +201,7 @@ func TestServeMux_HandleCorrectMethodHead(t *testing.T) {
 	}
 
 	if path != "/a" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -221,7 +221,7 @@ func TestServeMux_HandleWildcard(t *testing.T) {
 	}
 
 	if path != "/a/*" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -241,7 +241,7 @@ func TestServeMux_HandleWildcardDepth(t *testing.T) {
 	}
 
 	if path != "/a/*" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -261,7 +261,7 @@ func TestServeMux_HandleOrder(t *testing.T) {
 	}
 
 	if path != "/b" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
 
@@ -280,6 +280,24 @@ func TestServeMux_HandleOptionsAtDepth(t *testing.T) {
 	}
 
 	if path != "/a/b" {
-		t.Error("Wrong string path")
+		t.Errorf("Wrong string path: %s", path)
+	}
+}
+
+// Ensure routing is not performed on decoded path components
+func TestServeMux_Encoded(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/users/:id/info").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/ji%2Fm/info", nil)
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/users/:id/info" {
+		t.Errorf("Wrong string path: %s", path)
 	}
 }
