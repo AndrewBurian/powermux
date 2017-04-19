@@ -1,4 +1,5 @@
 # PowerMux
+[![Build Status](https://travis-ci.org/AndrewBurian/powermux.svg?branch=master)](https://travis-ci.org/AndrewBurian/powermux)  
 A drop-in replacement for Go's `http.ServeMux` with all the missing features
 
 PowerMux stores routes in Radix trees for fast route matching and lookup on large numbers of routes.
