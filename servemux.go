@@ -52,9 +52,9 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// check if we have a host specific route tree to consult
 	hostRoute, ok := s.hostRoutes[req.URL.Host]
 	if ok {
-		ex = hostRoute.execute(req.Method, req.URL.Path)
+		ex = hostRoute.execute(req.Method, req.URL.EscapedPath())
 	} else {
-		ex = s.baseRoute.execute(req.Method, req.URL.Path)
+		ex = s.baseRoute.execute(req.Method, req.URL.EscapedPath())
 	}
 
 	// If there is no handler, run the not found handler
@@ -124,9 +124,9 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 	// Get the route execution
 	var ex *routeExecution
 	if route, ok := s.hostRoutes[r.URL.Host]; ok {
-		ex = route.execute(r.Method, r.URL.Path)
+		ex = route.execute(r.Method, r.URL.EscapedPath())
 	} else {
-		ex = s.baseRoute.execute(r.Method, r.URL.Path)
+		ex = s.baseRoute.execute(r.Method, r.URL.EscapedPath())
 	}
 
 	// reconstruct the path
