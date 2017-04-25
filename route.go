@@ -2,6 +2,7 @@ package powermux
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -9,6 +10,32 @@ const (
 	methodAny = "ANY"
 	notFound  = "NOT_FOUND"
 )
+
+type childList []*Route
+
+func (l childList) Len() int {
+	return len(l)
+}
+
+func (l childList) Less(i, j int) bool {
+	return l[i].pattern < l[j].pattern
+}
+
+func (l childList) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
+}
+
+func (l childList) Search(pattern string) *Route {
+	index := sort.Search(l.Len(), func(i int) bool {
+		return l[i].pattern >= pattern
+	})
+
+	if index < l.Len() && l[index].pattern == pattern {
+		return l[index]
+	}
+
+	return nil
+}
 
 // routeExecution is the complete instructions for running serve on a route
 type routeExecution struct {
@@ -33,7 +60,7 @@ type Route struct {
 	// the array of middleware this node invokes
 	middleware []Middleware
 	// child nodes
-	children []*Route
+	children childList
 	// child node for path parameters
 	paramChild *Route
 	// set if there's a wildcard handler child (lowest priority)
@@ -75,31 +102,7 @@ func (r *Route) execute(method, pattern string) *routeExecution {
 // getExecution is a recursive step in the tree traversal. It checks to see if this node matches,
 // fills out any instructions in the execution, and returns. The return value indicates only if
 // this node matched, not if anything was added to the execution.
-func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) bool {
-
-	var match bool
-
-	// If this node is a path parameter, we match any stringRoutes
-	if r.isParam {
-		// save the path parameter
-		ex.params[r.paramName] = pathParts[0]
-		match = true
-	}
-
-	// check if we're a direct match
-	if r.pattern == pathParts[0] {
-		match = true
-	}
-
-	// check if we're a wildcard
-	if r.isWildcard {
-		match = true
-	}
-
-	// if we don't match, return
-	if !match {
-		return false
-	}
+func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) {
 
 	// save this node as part of the path
 	ex.pattern = append(ex.pattern, r.pattern)
@@ -124,19 +127,27 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 		// hit the bottom of the tree, see if we have a handler to offer
 		r.getHandler(method, ex)
-		return true
+		return
 
 	}
 
 	// iterate over our children looking for deeper to go
-	for _, child := range r.getChildren() {
-		if found := child.getExecution(method, pathParts[1:], ex); found {
-			return found
-		}
+
+	// binary search over regular children
+	if child := r.children.Search(pathParts[1]); child != nil {
+		child.getExecution(method, pathParts[1:], ex)
+		return
 	}
 
-	// even if we didn't find a handler, we were still a match
-	return true
+	// try for params and wildcard children
+	if r.paramChild != nil {
+		r.paramChild.getExecution(method, pathParts[1:], ex)
+		return
+	}
+	if r.wildcardChild != nil {
+		r.wildcardChild.getExecution(method, pathParts[1:], ex)
+		return
+	}
 }
 
 // getHandler is a convenience function for choosing a handler from the route's map of options
@@ -262,6 +273,9 @@ func (r *Route) create(path []string) *Route {
 	} else {
 		// Just a regular child
 		r.children = append(r.children, newRoute)
+
+		// sort children alphabetically for efficient run time searching
+		sort.Sort(r.children)
 	}
 
 	// the cycle continues
