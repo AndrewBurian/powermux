@@ -61,7 +61,7 @@ func BenchmarkNarrowAndDeep(b *testing.B) {
 func addFanRoutes(n int, r *Route) (routes []string) {
 	for i := 0; i < FAN_SPREAD; i++ {
 		route := "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
-		r2 := r.Route(route)
+		r2 := r.Route(route).Any(rightHandler)
 		routes = append(routes, route)
 		if n == 0 {
 			break
