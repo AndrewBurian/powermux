@@ -104,48 +104,57 @@ func (r *Route) execute(method, pattern string) *routeExecution {
 // this node matched, not if anything was added to the execution.
 func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) {
 
-	// save this node as part of the path
-	ex.pattern = append(ex.pattern, r.pattern)
+	var curRoute *Route = r
 
-	// save all the middleware
-	ex.middleware = append(ex.middleware, r.middleware...)
+	for {
+		// save this node as part of the path
+		ex.pattern = append(ex.pattern, curRoute.pattern)
 
-	// save not found handler
-	if h, ok := r.handlers[notFound]; ok {
-		ex.notFound = h
-	}
+		// save all the middleware
+		ex.middleware = append(ex.middleware, curRoute.middleware...)
 
-	// save options handler
-	if method == http.MethodOptions {
-		if h, ok := r.handlers[http.MethodOptions]; ok {
-			ex.handler = h
+		// save not found handler
+		if h, ok := curRoute.handlers[notFound]; ok {
+			ex.notFound = h
 		}
-	}
 
-	// check if this is the bottom of the path
-	if len(pathParts) == 1 || r.isWildcard {
+		// save options handler
+		if method == http.MethodOptions {
+			if h, ok := curRoute.handlers[http.MethodOptions]; ok {
+				ex.handler = h
+			}
+		}
 
-		// hit the bottom of the tree, see if we have a handler to offer
-		r.getHandler(method, ex)
-		return
+		// check if this is the bottom of the path
+		if len(pathParts) == 1 || curRoute.isWildcard {
 
-	}
+			// hit the bottom of the tree, see if we have a handler to offer
+			curRoute.getHandler(method, ex)
+			return
 
-	// iterate over our children looking for deeper to go
+		}
 
-	// binary search over regular children
-	if child := r.children.Search(pathParts[1]); child != nil {
-		child.getExecution(method, pathParts[1:], ex)
-		return
-	}
+		// iterate over our children looking for deeper to go
 
-	// try for params and wildcard children
-	if r.paramChild != nil {
-		r.paramChild.getExecution(method, pathParts[1:], ex)
-		return
-	}
-	if r.wildcardChild != nil {
-		r.wildcardChild.getExecution(method, pathParts[1:], ex)
+		// binary search over regular children
+		if child := curRoute.children.Search(pathParts[1]); child != nil {
+			pathParts = pathParts[1:]
+			curRoute = child
+			continue
+		}
+
+		// try for params and wildcard children
+		if curRoute.paramChild != nil {
+			pathParts = pathParts[1:]
+			curRoute = curRoute.paramChild
+			continue
+		}
+		if curRoute.wildcardChild != nil {
+			pathParts = pathParts[1:]
+			curRoute = curRoute.wildcardChild
+			continue
+		}
+
 		return
 	}
 }
