@@ -129,15 +129,12 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 		ex = s.baseRoute.execute(r.Method, r.URL.EscapedPath())
 	}
 
-	// reconstruct the path
-	pattern := strings.Join(ex.pattern, "/")
-
 	// fall back on not found handler if necessary
 	if ex.handler == nil {
 		ex.handler = ex.notFound
 	}
 
-	return ex.handler, ex.middleware, pattern
+	return ex.handler, ex.middleware, ex.pattern
 }
 
 // Route returns the route from the root of the domain to the given pattern
@@ -163,8 +160,7 @@ func (s *ServeMux) NotFound(handler http.Handler) {
 // String returns a list of all routes registered with this server
 func (s *ServeMux) String() string {
 	routes := make([]string, 0)
-	path := make([]string, 0)
-	s.baseRoute.stringRoutes(path, &routes)
+	s.baseRoute.stringRoutes(&routes)
 
 	buf := bytes.Buffer{}
 

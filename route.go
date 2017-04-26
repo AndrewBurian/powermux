@@ -39,7 +39,7 @@ func (l childList) Search(pattern string) *Route {
 
 // routeExecution is the complete instructions for running serve on a route
 type routeExecution struct {
-	pattern    []string
+	pattern    string
 	params     map[string]string
 	notFound   http.Handler
 	middleware []Middleware
@@ -51,6 +51,8 @@ type routeExecution struct {
 type Route struct {
 	// the pattern our node matches
 	pattern string
+	// the full path to this node
+	fullPath string
 	// if we are a named path param node '/:name'
 	isParam bool
 	// the name of our path parameter
@@ -87,7 +89,6 @@ func (r *Route) execute(method, pattern string) *routeExecution {
 
 	// Create a new routeExecution
 	ex := &routeExecution{
-		pattern:    make([]string, 0, len(pathParts)),
 		middleware: make([]Middleware, 0),
 		params:     make(map[string]string),
 	}
@@ -107,8 +108,6 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 	var curRoute *Route = r
 
 	for {
-		// save this node as part of the path
-		ex.pattern = append(ex.pattern, curRoute.pattern)
 
 		// save all the middleware
 		ex.middleware = append(ex.middleware, curRoute.middleware...)
@@ -130,6 +129,7 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 			// hit the bottom of the tree, see if we have a handler to offer
 			curRoute.getHandler(method, ex)
+			ex.pattern = curRoute.fullPath
 			return
 
 		}
@@ -232,11 +232,11 @@ func (r *Route) Route(path string) *Route {
 	}
 
 	// find/create the new path
-	return r.create(pathParts)
+	return r.create(pathParts, r.fullPath)
 }
 
 // Create descends the tree following path, creating nodes as needed and returns the target node
-func (r *Route) create(path []string) *Route {
+func (r *Route) create(path []string, parentPath string) *Route {
 
 	// ensure this path matches us
 	if r.pattern != path[0] {
@@ -251,7 +251,7 @@ func (r *Route) create(path []string) *Route {
 
 	// iterate over all children looking for a place to put this
 	for _, child := range r.getChildren() {
-		if r := child.create(path[1:]); r != nil {
+		if r := child.create(path[1:], r.fullPath); r != nil {
 			return r
 		}
 	}
@@ -261,6 +261,7 @@ func (r *Route) create(path []string) *Route {
 
 	// set the pattern name
 	newRoute.pattern = path[1]
+	newRoute.fullPath = r.fullPath + "/" + path[1]
 
 	// check if it's a path param
 	if strings.HasPrefix(path[1], ":") {
@@ -288,20 +289,19 @@ func (r *Route) create(path []string) *Route {
 	}
 
 	// the cycle continues
-	return newRoute.create(path[1:])
+	return newRoute.create(path[1:], r.fullPath)
 }
 
 // stringRoutes returns the stringRoutes representation of this route and all below it.
-func (r *Route) stringRoutes(path []string, routes *[]string) {
-	path = append(path, r.pattern)
+func (r *Route) stringRoutes(routes *[]string) {
 
 	var thisRoute string
 
 	// handle root node
-	if len(path) == 1 {
+	if r.fullPath == "" {
 		thisRoute = "/"
 	} else {
-		thisRoute = strings.Join(path, "/")
+		thisRoute = r.fullPath
 	}
 
 	if len(r.handlers) > 0 {
@@ -316,7 +316,7 @@ func (r *Route) stringRoutes(path []string, routes *[]string) {
 
 	// recursion
 	for _, child := range r.getChildren() {
-		child.stringRoutes(path, routes)
+		child.stringRoutes(routes)
 	}
 }
 
