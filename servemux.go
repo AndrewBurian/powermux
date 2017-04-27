@@ -21,7 +21,7 @@ type ctxKey string
 // the path '/users/:name' given '/users/andrew' will have `GetPathParams(r, "name")` => `"andrew"`
 // unset values return an empty stringRoutes
 func GetPathParam(req *http.Request, name string) (value string) {
-	name, _ = req.Context().Value(ctxKey(name)).(string)
+	value, _ = req.Context().Value(ctxKey(name)).(string)
 	return
 }
 
@@ -62,14 +62,7 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		ex.handler = ex.notFound
 	}
 
-	// set all the path params
-	if len(ex.params) > 0 {
-		var ctx context.Context
-		for key, val := range ex.params {
-			ctx = context.WithValue(req.Context(), ctxKey(key), val)
-		}
-		req = req.WithContext(ctx)
-	}
+	req = s.setParams(ex, req)
 
 	// Run a middleware/handler closure to nest all middleware
 	f := getNextMiddleware(ex.middleware, ex.handler)
@@ -112,14 +105,14 @@ func (s *ServeMux) HandleFunc(path string, handler func(http.ResponseWriter, *ht
 //
 // If there is no registered handler that applies to the request, Handler returns a “page not found” handler
 // and an empty pattern.
-func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
-	handler, _, pattern := s.HandlerAndMiddleware(r)
-	return handler, pattern
+func (s *ServeMux) Handler(r *http.Request) (http.Handler, string, *http.Request) {
+	handler, _, pattern, req := s.HandlerAndMiddleware(r)
+	return handler, pattern, req
 }
 
 // HandlerAndMiddleware returns the same as Handler, but with the addition of an array of middleware, in the order
 // they would have been executed
-func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
+func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string, *http.Request) {
 
 	// Get the route execution
 	var ex *routeExecution
@@ -134,8 +127,26 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 		ex.handler = ex.notFound
 	}
 
-	return ex.handler, ex.middleware, ex.pattern
+	r = s.setParams(ex, r)
+
+	return ex.handler, ex.middleware, ex.pattern, r
 }
+
+func (s *ServeMux) setParams(ex *routeExecution, req *http.Request) *http.Request {
+	curReq := req
+
+	// set all the path params
+	if len(ex.params) > 0 {
+		var ctx context.Context
+		for key, val := range ex.params {
+			ctx = context.WithValue(curReq.Context(), ctxKey(key), val)
+		}
+		curReq = curReq.WithContext(ctx)
+	}
+
+	return curReq
+}
+
 
 // Route returns the route from the root of the domain to the given pattern
 func (s *ServeMux) Route(path string) *Route {

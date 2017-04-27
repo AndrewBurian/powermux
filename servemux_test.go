@@ -27,7 +27,7 @@ func TestServeMux_ParamPrecedence(t *testing.T) {
 	s.Route("/users/:id/detail").Get(wrongHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/jim/info", nil)
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -50,7 +50,7 @@ func TestServeMux_WildcardPrecedence(t *testing.T) {
 	s.Route("/users/john").Get(rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/john", nil)
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -69,7 +69,7 @@ func TestServeMux_WildcardPathPrecedence(t *testing.T) {
 	s.Route("/users/:id").Get(rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/john", nil)
-	h, _ := s.Handler(req)
+	h, _, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -122,7 +122,7 @@ func TestServeMux_HandleCorrectRoute(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/a", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -142,7 +142,7 @@ func TestServeMux_HandleCorrectRouteAfterParam(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/base/llama/a", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler retured")
@@ -166,7 +166,7 @@ func TestServeMux_HandleCorrectMethod(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/a", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -187,7 +187,7 @@ func TestServeMux_HandleCorrectMethodAny(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodDelete, "/a", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -207,7 +207,7 @@ func TestServeMux_HandleCorrectMethodHead(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodHead, "/a", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -227,7 +227,7 @@ func TestServeMux_HandleWildcard(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/a/llama", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -247,7 +247,7 @@ func TestServeMux_HandleWildcardDepth(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/a/llama/4/5", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -267,7 +267,7 @@ func TestServeMux_HandleOrder(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/b", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -286,7 +286,7 @@ func TestServeMux_HandleOptionsAtDepth(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodOptions, "/a/b", nil)
 
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
@@ -304,13 +304,13 @@ func TestServeMux_Encoded(t *testing.T) {
 	s.Route("/users/:id/info").Get(rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/ji%2Fm/info", nil)
-	h, path := s.Handler(req)
+	h, path, req := s.Handler(req)
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
 	}
 
-	if GetPathParam(req, "id") != "ji/m" {
+	if GetPathParam(req, "id") != "ji%2Fm" {
 		t.Error("Wrong path param returned")
 	}
 
