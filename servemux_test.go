@@ -33,6 +33,10 @@ func TestServeMux_ParamPrecedence(t *testing.T) {
 		t.Error("Wrong handler returned")
 	}
 
+	if GetPathParam(req, "id") != "jim" {
+		t.Error("Wrong path param returned")
+	}
+
 	if path != "/users/jim/info" {
 		t.Errorf("Wrong string path: %s", path)
 	}
@@ -70,6 +74,11 @@ func TestServeMux_WildcardPathPrecedence(t *testing.T) {
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
 	}
+
+	if GetPathParam(req, "id") != "john" {
+		t.Error("Wrong path param returned")
+	}
+
 }
 
 // Ensures trailing slash redirects are working
@@ -116,7 +125,7 @@ func TestServeMux_HandleCorrectRoute(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a" {
@@ -136,7 +145,11 @@ func TestServeMux_HandleCorrectRouteAfterParam(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler retured")
+	}
+
+	if GetPathParam(req, "id") != "llama" {
+		t.Error("Wrong path param returned")
 	}
 
 	if path != "/base/:id/a" {
@@ -156,7 +169,7 @@ func TestServeMux_HandleCorrectMethod(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a" {
@@ -177,7 +190,7 @@ func TestServeMux_HandleCorrectMethodAny(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a" {
@@ -197,7 +210,7 @@ func TestServeMux_HandleCorrectMethodHead(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a" {
@@ -217,7 +230,7 @@ func TestServeMux_HandleWildcard(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a/*" {
@@ -237,7 +250,7 @@ func TestServeMux_HandleWildcardDepth(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a/*" {
@@ -257,7 +270,7 @@ func TestServeMux_HandleOrder(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/b" {
@@ -276,7 +289,7 @@ func TestServeMux_HandleOptionsAtDepth(t *testing.T) {
 	h, path := s.Handler(req)
 
 	if h != rightHandler {
-		t.Error("Wrong handler returnered")
+		t.Error("Wrong handler returned")
 	}
 
 	if path != "/a/b" {
@@ -295,6 +308,10 @@ func TestServeMux_Encoded(t *testing.T) {
 
 	if h != rightHandler {
 		t.Error("Wrong handler returned")
+	}
+
+	if GetPathParam(req, "id") != "ji/m" {
+		t.Error("Wrong path param returned")
 	}
 
 	if path != "/users/:id/info" {
