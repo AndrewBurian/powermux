@@ -124,6 +124,11 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 			}
 		}
 
+		// save path parameters
+		if curRoute.isParam {
+			ex.params[curRoute.paramName] = pathParts[0]
+		}
+
 		// check if this is the bottom of the path
 		if len(pathParts) == 1 || curRoute.isWildcard {
 
