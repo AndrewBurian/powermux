@@ -33,8 +33,8 @@ func TestServeMux_ParamPrecedence(t *testing.T) {
 		t.Error("Wrong handler returned")
 	}
 
-	if GetPathParam(req, "id") != "jim" {
-		t.Error("Wrong path param returned")
+	if GetPathParam(req, "id") == "jim" {
+		t.Error("Path param populated incorrectly")
 	}
 
 	if path != "/users/jim/info" {
