@@ -62,7 +62,14 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		ex.handler = ex.notFound
 	}
 
-	req = s.setParams(ex, req)
+	// set all the path params
+	if len(ex.params) > 0 {
+		var ctx context.Context
+		for key, val := range ex.params {
+			ctx = context.WithValue(req.Context(), ctxKey(key), val)
+		}
+		req = req.WithContext(ctx)
+	}
 
 	// Run a middleware/handler closure to nest all middleware
 	f := getNextMiddleware(ex.middleware, ex.handler)
@@ -129,22 +136,6 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 
 	return ex.handler, ex.middleware, ex.pattern
 }
-
-func (s *ServeMux) setParams(ex *routeExecution, req *http.Request) *http.Request {
-	curReq := req
-
-	// set all the path params
-	if len(ex.params) > 0 {
-		var ctx context.Context
-		for key, val := range ex.params {
-			ctx = context.WithValue(curReq.Context(), ctxKey(key), val)
-		}
-		curReq = curReq.WithContext(ctx)
-	}
-
-	return curReq
-}
-
 
 // Route returns the route from the root of the domain to the given pattern
 func (s *ServeMux) Route(path string) *Route {
