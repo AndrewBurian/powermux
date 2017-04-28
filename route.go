@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"net/url"
 )
 
 const (
@@ -122,6 +123,16 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 			if h, ok := curRoute.handlers[http.MethodOptions]; ok {
 				ex.handler = h
 			}
+		}
+
+		// save path parameters
+		if curRoute.isParam {
+			value, err := url.PathUnescape(pathParts[0])
+			if err != nil {
+				// TODO: maybe handle errors more gracefully
+				panic(err)
+			}
+			ex.params[curRoute.paramName] = value
 		}
 
 		// check if this is the bottom of the path

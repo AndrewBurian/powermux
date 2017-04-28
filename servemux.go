@@ -21,7 +21,7 @@ type ctxKey string
 // the path '/users/:name' given '/users/andrew' will have `GetPathParams(r, "name")` => `"andrew"`
 // unset values return an empty stringRoutes
 func GetPathParam(req *http.Request, name string) (value string) {
-	name, _ = req.Context().Value(ctxKey(name)).(string)
+	value, _ = req.Context().Value(ctxKey(name)).(string)
 	return
 }
 
