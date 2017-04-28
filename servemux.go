@@ -105,14 +105,14 @@ func (s *ServeMux) HandleFunc(path string, handler func(http.ResponseWriter, *ht
 //
 // If there is no registered handler that applies to the request, Handler returns a “page not found” handler
 // and an empty pattern.
-func (s *ServeMux) Handler(r *http.Request) (http.Handler, string, *http.Request) {
-	handler, _, pattern, req := s.HandlerAndMiddleware(r)
-	return handler, pattern, req
+func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
+	handler, _, pattern := s.HandlerAndMiddleware(r)
+	return handler, pattern
 }
 
 // HandlerAndMiddleware returns the same as Handler, but with the addition of an array of middleware, in the order
 // they would have been executed
-func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string, *http.Request) {
+func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
 
 	// Get the route execution
 	var ex *routeExecution
@@ -127,9 +127,7 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 		ex.handler = ex.notFound
 	}
 
-	r = s.setParams(ex, r)
-
-	return ex.handler, ex.middleware, ex.pattern, r
+	return ex.handler, ex.middleware, ex.pattern
 }
 
 func (s *ServeMux) setParams(ex *routeExecution, req *http.Request) *http.Request {
