@@ -117,18 +117,18 @@ mux.Route("/users/:id/info").
 
 This will make the variable `id` available to the get handler and any middleware.  
 
-To retrieve path parameters, use `GetPathParam()`:
+To retrieve path parameters, use `PathParam()`:
 
 ```go
 // called with /users/andrew/info
 func ServeHTTP(w http.ResponseWriter, r *http.Request) {
-        id := powermux.GetPathParam(r, "id")
+        id := powermux.PathParam(r, "id")
         // id == "andrew"
 }
 ```
 
-Path parameters that aren't found return an empty string.
-Path parameters are unescaped.
+Path parameters that aren't found return an empty string.  
+Path parameters are unescaped with `url.PathUnescape`.
 
 ## Wildcard patterns
 Routes may be declared with a wildcard indicator `*` at the end. 
