@@ -16,11 +16,11 @@ type ServeMux struct {
 // ctxKey is the key type used for path parameters in the request context
 type ctxKey string
 
-// GetPathParam gets named path parameters and their values from the request
+// PathParam gets named path parameters and their values from the request
 //
 // the path '/users/:name' given '/users/andrew' will have `GetPathParams(r, "name")` => `"andrew"`
 // unset values return an empty stringRoutes
-func GetPathParam(req *http.Request, name string) (value string) {
+func PathParam(req *http.Request, name string) (value string) {
 	value, _ = req.Context().Value(ctxKey(name)).(string)
 	return
 }

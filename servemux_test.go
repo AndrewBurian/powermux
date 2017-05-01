@@ -48,7 +48,7 @@ func TestServeMux_ParamPrecedenceParamExtraction(t *testing.T) {
 
 	rightHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		called = true
-		param = GetPathParam(req, "id")
+		param = PathParam(req, "id")
 	})
 
 	s.Route("/users/:id/info").Get(wrongHandler)
@@ -115,7 +115,7 @@ func TestServeMux_WildcardPathPrecedenceParamExtraction(t *testing.T) {
 
 	rightHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		called = true
-		param = GetPathParam(req, "id")
+		param = PathParam(req, "id")
 	})
 
 	s.Route("/users/*").Get(wrongHandler)
@@ -213,7 +213,7 @@ func TestServeMux_HandleCorrectRouteAfterParamExtraction(t *testing.T) {
 
 	rightHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		called = true
-		param = GetPathParam(req, "id")
+		param = PathParam(req, "id")
 	})
 
 	s.Route("/base/:id/a").Get(rightHandler)
@@ -392,7 +392,7 @@ func TestServeMux_EncodedPathComponentParamExtraction(t *testing.T) {
 
 	rightHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		called = true
-		param = GetPathParam(req, "id")
+		param = PathParam(req, "id")
 	})
 
 	s.Route("/users/:id/info").Get(rightHandler)
