@@ -93,6 +93,11 @@ func (s *ServeMux) Middleware(path string, middleware Middleware) {
 	s.Route(path).Middleware(middleware)
 }
 
+// MiddlewareFunc registers a plain function as a middleware.
+func (s *ServeMux) MiddlewareFunc(path string, m MiddlewareFunc) *Route {
+	return s.Route(path).MiddlewareFunc(m)
+}
+
 // MiddlewareHost adds middleware for the given pattern.
 func (s *ServeMux) MiddlewareHost(host, path string, middleware Middleware) {
 	s.RouteHost(host, path).Middleware(middleware)

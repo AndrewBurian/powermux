@@ -599,3 +599,29 @@ func TestServeMux_MiddlewareDouble(t *testing.T) {
 		t.Error("Wrong middleware 2")
 	}
 }
+
+func TestServeMux_MiddlewareFunc(t *testing.T) {
+	s := NewServeMux()
+
+	var called bool
+
+	midFunc := func(res http.ResponseWriter, req *http.Request, next NextMiddlewareFunc) {
+		called = true
+	}
+
+	s.MiddlewareFunc("/", midFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 2, got", len(mids))
+	}
+
+	s.ServeHTTP(nil, req)
+
+	if !called {
+		t.Error("Middleware not called")
+	}
+}
