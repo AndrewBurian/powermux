@@ -21,6 +21,8 @@ func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request
 var (
 	rightHandler = dummyHandler("right")
 	wrongHandler = dummyHandler("wrong")
+	mid1         = dummyHandler("mid1")
+	mid2         = dummyHandler("mid2")
 )
 
 // Ensures that parameter routes have lower precedence than absolute routes
@@ -552,5 +554,48 @@ func TestServeMux_HandlePost(t *testing.T) {
 
 	if path != "/a" {
 		t.Error("Wrong path, expected /a, got", path)
+	}
+}
+
+func TestServeMux_MiddlewareSingle(t *testing.T) {
+	s := NewServeMux()
+
+	s.Middleware("/", mid1)
+	s.Handle("/", rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 1, got", len(mids))
+	}
+
+	if mids[0] != mid1 {
+		t.Error("wat")
+	}
+}
+
+func TestServeMux_MiddlewareDouble(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").
+		Middleware(mid1).
+		Get(rightHandler).
+		Middleware(mid2)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 2 {
+		t.Fatal("Wrong number of middlewares returned. Expected 2, got", len(mids))
+	}
+
+	if mids[0] != mid1 {
+		t.Error("Wrong middleware 1")
+	}
+	if mids[1] != mid2 {
+		t.Error("Wrong middleware 2")
 	}
 }

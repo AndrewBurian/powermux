@@ -382,6 +382,12 @@ func (r *Route) Any(handler http.Handler) *Route {
 	return r
 }
 
+// Post adds a handler for PUT methods to this route.
+func (r *Route) Put(handler http.Handler) *Route {
+	r.handlers[http.MethodPut] = handler
+	return r
+}
+
 // Post adds a handler for POST methods to this route.
 func (r *Route) Post(handler http.Handler) *Route {
 	r.handlers[http.MethodPost] = handler
