@@ -1,6 +1,10 @@
 package powermux
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
 func TestRoute_RouteIsSame(t *testing.T) {
 	r := newRoute()
@@ -143,5 +147,46 @@ func TestRoute_TrailingSlash(t *testing.T) {
 
 	if len(r.children[0].children) > 0 {
 		t.Error("Unexpected grandchildren")
+	}
+}
+
+func TestLeadingSlash(t *testing.T) {
+	r := newRoute()
+	r1 := r.Route("a")
+	r2 := r.Route("/a")
+
+	if r1 != r2 {
+		t.Error("Route without leading slash not equivilant")
+	}
+}
+
+func TestRoute_Types(t *testing.T) {
+	handlers := make(map[string]http.Handler)
+	handlers[http.MethodGet] = dummyHandler("get")
+	handlers[http.MethodPost] = dummyHandler("post")
+	handlers[http.MethodConnect] = dummyHandler("connect")
+	handlers[http.MethodHead] = dummyHandler("head")
+	handlers[http.MethodDelete] = dummyHandler("delete")
+	handlers[http.MethodOptions] = dummyHandler("options")
+	handlers[http.MethodPatch] = dummyHandler("patch")
+	handlers[http.MethodPut] = dummyHandler("put")
+
+	s := NewServeMux()
+	r := s.Route("/")
+	r.Get(handlers[http.MethodGet])
+	r.Post(handlers[http.MethodPost])
+	r.Connect(handlers[http.MethodConnect])
+	r.Head(handlers[http.MethodHead])
+	r.Delete(handlers[http.MethodDelete])
+	r.Options(handlers[http.MethodOptions])
+	r.Patch(handlers[http.MethodPatch])
+	r.Put(handlers[http.MethodPut])
+
+	for method, handler := range handlers {
+		req := httptest.NewRequest(method, "/", nil)
+		h, _ := s.Handler(req)
+		if h != handler {
+			t.Error("Wrong handler for request type", method)
+		}
 	}
 }

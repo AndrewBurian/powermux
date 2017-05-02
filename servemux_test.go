@@ -13,9 +13,16 @@ func (h dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(h))
 }
 
+func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request, n NextMiddlewareFunc) {
+	io.WriteString(w, string(h))
+	n(w, r)
+}
+
 var (
 	rightHandler = dummyHandler("right")
 	wrongHandler = dummyHandler("wrong")
+	mid1         = dummyHandler("mid1")
+	mid2         = dummyHandler("mid2")
 )
 
 // Ensures that parameter routes have lower precedence than absolute routes
@@ -406,5 +413,215 @@ func TestServeMux_EncodedPathComponentParamExtraction(t *testing.T) {
 
 	if param != "ji/m" {
 		t.Error("Wrong path param returned")
+	}
+}
+
+func TestRoute_PermanentRedirect(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/redir").Redirect("/redirect", true)
+
+	req := httptest.NewRequest(http.MethodGet, "/redir", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusPermanentRedirect {
+		t.Error("Should have issued permanemt redirect. Got", res.Code)
+	}
+
+	if res.Header().Get("Location") != "/redirect" {
+		t.Error("Wrong redirect target. Expected /redirect, got", res.Header().Get("Location"))
+	}
+
+}
+
+func TestRoute_TemporaryRedirect(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/redir").Redirect("/redirect", false)
+
+	req := httptest.NewRequest(http.MethodGet, "/redir", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusTemporaryRedirect {
+		t.Error("Should have issued temporary redirect. Got", res.Code)
+	}
+
+	if res.Header().Get("Location") != "/redirect" {
+		t.Error("Wrong redirect target. Expected /redirect, got", res.Header().Get("Location"))
+	}
+
+}
+
+func TestNotFoundEmptyRouteNode(t *testing.T) {
+	s := NewServeMux()
+
+	// create but add no handlers
+	s.Route("/empty")
+
+	req := httptest.NewRequest(http.MethodGet, "/empty", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Error("Wrong response code, expected not found, got", res.Code)
+	}
+}
+
+func TestRoute_Head(t *testing.T) {
+
+	s := NewServeMux()
+
+	s.Route("/").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodHead, "/", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/" {
+		t.Error("Wrong path returned", path)
+	}
+
+}
+
+func TestRoutePathRoot(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/" {
+		t.Error("Wrong path returned", path)
+	}
+}
+
+func TestNotFoundFallback(t *testing.T) {
+	s := NewServeMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/found", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Error("Wrong response code. Expected 404 got", res.Code)
+	}
+}
+
+func TestServeMux_HandleGet(t *testing.T) {
+	s := NewServeMux()
+
+	s.Handle("/a", rightHandler)
+	req := httptest.NewRequest(http.MethodGet, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong path, expected /a, got", path)
+	}
+}
+
+func TestServeMux_HandlePost(t *testing.T) {
+	s := NewServeMux()
+
+	s.Handle("/a", rightHandler)
+	req := httptest.NewRequest(http.MethodPost, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong path, expected /a, got", path)
+	}
+}
+
+func TestServeMux_MiddlewareSingle(t *testing.T) {
+	s := NewServeMux()
+
+	s.Middleware("/", mid1)
+	s.Handle("/", rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 1, got", len(mids))
+	}
+
+	if mids[0] != mid1 {
+		t.Error("wat")
+	}
+}
+
+func TestServeMux_MiddlewareDouble(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").
+		Middleware(mid1).
+		Get(rightHandler).
+		Middleware(mid2)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 2 {
+		t.Fatal("Wrong number of middlewares returned. Expected 2, got", len(mids))
+	}
+
+	if mids[0] != mid1 {
+		t.Error("Wrong middleware 1")
+	}
+	if mids[1] != mid2 {
+		t.Error("Wrong middleware 2")
+	}
+}
+
+func TestServeMux_MiddlewareFunc(t *testing.T) {
+	s := NewServeMux()
+
+	var called bool
+
+	midFunc := func(res http.ResponseWriter, req *http.Request, next NextMiddlewareFunc) {
+		called = true
+	}
+
+	s.MiddlewareFunc("/", midFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 2, got", len(mids))
+	}
+
+	s.ServeHTTP(nil, req)
+
+	if !called {
+		t.Error("Middleware not called")
 	}
 }
