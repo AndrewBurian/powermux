@@ -13,6 +13,11 @@ func (h dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(h))
 }
 
+func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request, n NextMiddlewareFunc) {
+	io.WriteString(w, string(h))
+	n(w, r)
+}
+
 var (
 	rightHandler = dummyHandler("right")
 	wrongHandler = dummyHandler("wrong")
@@ -500,5 +505,52 @@ func TestRoutePathRoot(t *testing.T) {
 
 	if path != "/" {
 		t.Error("Wrong path returned", path)
+	}
+}
+
+func TestNotFoundFallback(t *testing.T) {
+	s := NewServeMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/found", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Error("Wrong response code. Expected 404 got", res.Code)
+	}
+}
+
+func TestServeMux_HandleGet(t *testing.T) {
+	s := NewServeMux()
+
+	s.Handle("/a", rightHandler)
+	req := httptest.NewRequest(http.MethodGet, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong path, expected /a, got", path)
+	}
+}
+
+func TestServeMux_HandlePost(t *testing.T) {
+	s := NewServeMux()
+
+	s.Handle("/a", rightHandler)
+	req := httptest.NewRequest(http.MethodPost, "/a", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/a" {
+		t.Error("Wrong path, expected /a, got", path)
 	}
 }
