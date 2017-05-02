@@ -145,3 +145,13 @@ func TestRoute_TrailingSlash(t *testing.T) {
 		t.Error("Unexpected grandchildren")
 	}
 }
+
+func TestLeadingSlash(t *testing.T) {
+	r := newRoute()
+	r1 := r.Route("a")
+	r2 := r.Route("/a")
+
+	if r1 != r2 {
+		t.Error("Route without leading slash not equivilant")
+	}
+}

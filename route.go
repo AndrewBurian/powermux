@@ -2,9 +2,9 @@ package powermux
 
 import (
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
-	"net/url"
 )
 
 const (
@@ -88,6 +88,10 @@ func (r *Route) execute(method, pattern string) *routeExecution {
 
 	pathParts := strings.Split(pattern, "/")
 
+	if pattern == "/" {
+		pathParts = pathParts[1:]
+	}
+
 	// Create a new routeExecution
 	ex := &routeExecution{
 		middleware: make([]Middleware, 0),
@@ -140,7 +144,12 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 			// hit the bottom of the tree, see if we have a handler to offer
 			curRoute.getHandler(method, ex)
-			ex.pattern = curRoute.fullPath
+
+			if curRoute.fullPath == "" {
+				ex.pattern = "/"
+			} else {
+				ex.pattern = curRoute.fullPath
+			}
 			return
 
 		}

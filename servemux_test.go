@@ -408,3 +408,97 @@ func TestServeMux_EncodedPathComponentParamExtraction(t *testing.T) {
 		t.Error("Wrong path param returned")
 	}
 }
+
+func TestRoute_PermanentRedirect(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/redir").Redirect("/redirect", true)
+
+	req := httptest.NewRequest(http.MethodGet, "/redir", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusPermanentRedirect {
+		t.Error("Should have issued permanemt redirect. Got", res.Code)
+	}
+
+	if res.Header().Get("Location") != "/redirect" {
+		t.Error("Wrong redirect target. Expected /redirect, got", res.Header().Get("Location"))
+	}
+
+}
+
+func TestRoute_TemporaryRedirect(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/redir").Redirect("/redirect", false)
+
+	req := httptest.NewRequest(http.MethodGet, "/redir", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusTemporaryRedirect {
+		t.Error("Should have issued temporary redirect. Got", res.Code)
+	}
+
+	if res.Header().Get("Location") != "/redirect" {
+		t.Error("Wrong redirect target. Expected /redirect, got", res.Header().Get("Location"))
+	}
+
+}
+
+func TestNotFoundEmptyRouteNode(t *testing.T) {
+	s := NewServeMux()
+
+	// create but add no handlers
+	s.Route("/empty")
+
+	req := httptest.NewRequest(http.MethodGet, "/empty", nil)
+	res := httptest.NewRecorder()
+
+	s.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Error("Wrong response code, expected not found, got", res.Code)
+	}
+}
+
+func TestRoute_Head(t *testing.T) {
+
+	s := NewServeMux()
+
+	s.Route("/").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodHead, "/", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/" {
+		t.Error("Wrong path returned", path)
+	}
+
+}
+
+func TestRoutePathRoot(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+
+	if path != "/" {
+		t.Error("Wrong path returned", path)
+	}
+}
