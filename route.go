@@ -340,7 +340,7 @@ func (r *Route) stringRoutes(routes *[]string) {
 	}
 }
 
-// getChildren returns the all the route handler with the correct order of precedence
+// getChildren returns all the routes with the correct order of precedence
 func (r *Route) getChildren() []*Route {
 
 	// allocate once
@@ -382,10 +382,11 @@ func (r *Route) Any(handler http.Handler) *Route {
 	return r
 }
 
-// Post adds a handler for PUT methods to this route.
-func (r *Route) Put(handler http.Handler) *Route {
-	r.handlers[http.MethodPut] = handler
-	return r
+// AnyFunc registers a plain function as a catch-all handler
+// for any method sent to this route.
+// This takes lower precedence than a specific method match.
+func (r *Route) AnyFunc(f http.HandlerFunc) *Route {
+	return r.Any(http.HandlerFunc(f))
 }
 
 // Post adds a handler for POST methods to this route.
@@ -394,18 +395,50 @@ func (r *Route) Post(handler http.Handler) *Route {
 	return r
 }
 
+// PostFunc adds a plain function as a handler
+// for POST methods to this route.
+func (r *Route) PostFunc(f http.HandlerFunc) *Route {
+	return r.Post(http.HandlerFunc(f))
+}
+
+// Put adds a handler for PUT methods to this route.
+func (r *Route) Put(handler http.Handler) *Route {
+	r.handlers[http.MethodPut] = handler
+	return r
+}
+
+// PutFunc adds a plain function as a handler
+// for PUT methods to this route.
+func (r *Route) PutFunc(f http.HandlerFunc) *Route {
+	return r.Put(http.HandlerFunc(f))
+}
+
 // Patch adds a handler for PATCH methods to this route.
 func (r *Route) Patch(handler http.Handler) *Route {
 	r.handlers[http.MethodPatch] = handler
 	return r
 }
 
+// PatchFunc adds a plain function as a handler
+// for PATCH methods to this route.
+func (r *Route) PatchFunc(f http.HandlerFunc) *Route {
+	return r.Patch(http.HandlerFunc(f))
+}
+
 // Get adds a handler for GET methods to this route.
-// Get handlers will also be called for HEAD requests if no specific
-// HEAD handler is registered.
+// GET handlers will also be called for HEAD requests
+// if no specific HEAD handler is registered.
 func (r *Route) Get(handler http.Handler) *Route {
 	r.handlers[http.MethodGet] = handler
 	return r
+}
+
+// GetFunc adds a plain function as a handler
+// for GET methods to this route.
+// GET handlers will also be called for HEAD requests
+// if no specific HEAD handler is registered.
+func (r *Route) GetFunc(f http.HandlerFunc) *Route {
+	return r.Get(http.HandlerFunc(f))
 }
 
 // Delete adds a handler for DELETE methods to this route.
@@ -414,10 +447,22 @@ func (r *Route) Delete(handler http.Handler) *Route {
 	return r
 }
 
+// DeleteFunc adds a plain function as a handler
+// for DELETE methods to this route.
+func (r *Route) DeleteFunc(f http.HandlerFunc) *Route {
+	return r.Delete(http.HandlerFunc(f))
+}
+
 // Head adds a handler for HEAD methods to this route.
 func (r *Route) Head(handler http.Handler) *Route {
 	r.handlers[http.MethodHead] = handler
 	return r
+}
+
+// HeadFunc adds a plain function as a handler
+// for HEAD methods to this route.
+func (r *Route) HeadFunc(f http.HandlerFunc) *Route {
+	return r.Head(http.HandlerFunc(f))
 }
 
 // Connect adds a handler for CONNECT methods to this route.
@@ -426,18 +471,40 @@ func (r *Route) Connect(handler http.Handler) *Route {
 	return r
 }
 
+// ConnectFunc adds a plain function as a handler
+// for CONNECT methods to this route.
+func (r *Route) ConnectFunc(f http.HandlerFunc) *Route {
+	return r.Connect(http.HandlerFunc(f))
+}
+
 // Options adds a handler for OPTIONS methods to this route.
-// This handler will also be called for any routes further down the path from
-// this point if no other OPTIONS handlers are registered below.
+// This handler will also be called for any routes further down the path
+// from this point if no other OPTIONS handlers are registered below.
 func (r *Route) Options(handler http.Handler) *Route {
 	r.handlers[http.MethodOptions] = handler
 	return r
 }
 
+// OptionsFunc adds a plain function as a handler
+// for OPTIONS methods to this route.
+// This handler will also be called for any routes further down the path
+// from this point if no other OPTIONS handlers are registered below.
+func (r *Route) OptionsFunc(f http.HandlerFunc) *Route {
+	return r.Options(http.HandlerFunc(f))
+}
+
 // NotFound adds a handler for requests that do not correspond to a route.
-// This handler will also be called for any routes further down the path from
-// this point if no other not found handlers are registered below.
+// This handler will also be called for any routes further down the path
+// from this point if no other not found handlers are registered below.
 func (r *Route) NotFound(handler http.Handler) *Route {
 	r.handlers[notFound] = handler
 	return r
+}
+
+// NotFoundFunc adds a plain function as a handler for requests
+// that do not correspond to a route.
+// This handler will also be called for any routes further down the path
+// from this point if no other not found handlers are registered below.
+func (r *Route) NotFoundFunc(f http.HandlerFunc) *Route {
+	return r.NotFound(http.HandlerFunc(f))
 }
