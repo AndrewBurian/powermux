@@ -18,6 +18,12 @@ func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request
 	n(w, r)
 }
 
+func dummyHandlerFunc(response string) func (w http.ResponseWriter, r *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, response)
+	}
+}
+
 var (
 	rightHandler = dummyHandler("right")
 	wrongHandler = dummyHandler("wrong")

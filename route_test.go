@@ -150,7 +150,7 @@ func TestRoute_TrailingSlash(t *testing.T) {
 	}
 }
 
-func TestLeadingSlash(t *testing.T) {
+func TestRoute_LeadingSlash(t *testing.T) {
 	r := newRoute()
 	r1 := r.Route("a")
 	r2 := r.Route("/a")
@@ -160,7 +160,7 @@ func TestLeadingSlash(t *testing.T) {
 	}
 }
 
-func TestRoute_Types(t *testing.T) {
+func TestRoute_MethodHandlers(t *testing.T) {
 	handlers := make(map[string]http.Handler)
 	handlers[http.MethodGet] = dummyHandler("get")
 	handlers[http.MethodPost] = dummyHandler("post")
@@ -187,6 +187,50 @@ func TestRoute_Types(t *testing.T) {
 		h, _ := s.Handler(req)
 		if h != handler {
 			t.Error("Wrong handler for request type", method)
+		}
+	}
+}
+
+func TestRoute_MethodHandlerFuncs(t *testing.T) {
+	handlers := make(map[string]http.HandlerFunc)
+	handlers[http.MethodGet] = dummyHandlerFunc("get")
+	handlers[http.MethodPost] = dummyHandlerFunc("post")
+	handlers[http.MethodConnect] = dummyHandlerFunc("connect")
+	handlers[http.MethodHead] = dummyHandlerFunc("head")
+	handlers[http.MethodDelete] = dummyHandlerFunc("delete")
+	handlers[http.MethodOptions] = dummyHandlerFunc("options")
+	handlers[http.MethodPatch] = dummyHandlerFunc("patch")
+	handlers[http.MethodPut] = dummyHandlerFunc("put")
+
+	s := NewServeMux()
+	r := s.Route("/")
+	r.GetFunc(handlers[http.MethodGet])
+	r.PostFunc(handlers[http.MethodPost])
+	r.ConnectFunc(handlers[http.MethodConnect])
+	r.HeadFunc(handlers[http.MethodHead])
+	r.DeleteFunc(handlers[http.MethodDelete])
+	r.OptionsFunc(handlers[http.MethodOptions])
+	r.PatchFunc(handlers[http.MethodPatch])
+	r.PutFunc(handlers[http.MethodPut])
+
+	for method, h1 := range handlers {
+		req := httptest.NewRequest(method, "/", nil)
+		h2, _ := s.Handler(req)
+
+		rec1 := httptest.NewRecorder()
+		h1.ServeHTTP(rec1, req)
+
+		rec2 := httptest.NewRecorder()
+		h2.ServeHTTP(rec2, req)
+
+		if rec2.Body.String() != rec1.Body.String() {
+			t.Error("Handler response bodies don't match:", method,
+				rec1.Body.String(), rec2.Body.String())
+		}
+
+		if rec2.Code != rec1.Code {
+			t.Error("Handler response codes don't match:", method,
+				rec1.Code, rec2.Code)
 		}
 	}
 }
