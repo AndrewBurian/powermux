@@ -18,8 +18,8 @@ func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request
 	n(w, r)
 }
 
-func dummyHandlerFunc(response string) func (w http.ResponseWriter, r *http.Request) {
-	return func (w http.ResponseWriter, r *http.Request) {
+func dummyHandlerFunc(response string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, response)
 	}
 }
@@ -629,5 +629,23 @@ func TestServeMux_MiddlewareFunc(t *testing.T) {
 
 	if !called {
 		t.Error("Middleware not called")
+	}
+}
+
+func TestServeMux_RequestPath(t *testing.T) {
+	s := NewServeMux()
+
+	var reqPath string
+
+	s.Route("/users/:id/info").GetFunc(func(res http.ResponseWriter, req *http.Request) {
+		reqPath = RequestPath(req)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/users/andrew/info", nil)
+
+	s.ServeHTTP(nil, req)
+
+	if reqPath != "/users/:id/info" {
+		t.Error("Wrong request path returned", reqPath)
 	}
 }

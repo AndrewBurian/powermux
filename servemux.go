@@ -16,6 +16,12 @@ type ServeMux struct {
 // ctxKey is the key type used for path parameters in the request context
 type ctxKey string
 
+// ctxRouteNameKey is the type used for the route in the request context.
+// Distinct from ctxKey to avoid collisions
+type ctxRouteNameKey string
+
+var routeKey = ctxRouteNameKey("route_name")
+
 // PathParam gets named path parameters and their values from the request
 //
 // the path '/users/:name' given '/users/andrew' will have `PathParam(r, "name")` => `"andrew"`
@@ -23,6 +29,13 @@ type ctxKey string
 func PathParam(req *http.Request, name string) (value string) {
 	value, _ = req.Context().Value(ctxKey(name)).(string)
 	return
+}
+
+// RequestPath returns the path definition that the router used to serve this request,
+// without any parameter substitution.
+func RequestPath(req *http.Request) (value string) {
+	value, _ = req.Context().Value(routeKey).(string)
+	return value
 }
 
 // NewServeMux creates a new multiplexer, and sets up a default not found handler
@@ -62,14 +75,18 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		ex.handler = ex.notFound
 	}
 
+	// Save the route path
+	ctx := context.WithValue(req.Context(), routeKey, ex.pattern)
+
 	// set all the path params
 	if len(ex.params) > 0 {
-		var ctx context.Context
 		for key, val := range ex.params {
-			ctx = context.WithValue(req.Context(), ctxKey(key), val)
+			ctx = context.WithValue(ctx, ctxKey(key), val)
 		}
-		req = req.WithContext(ctx)
 	}
+
+	// Save context into request
+	req = req.WithContext(ctx)
 
 	// Run a middleware/handler closure to nest all middleware
 	f := getNextMiddleware(ex.middleware, ex.handler)
