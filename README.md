@@ -164,6 +164,23 @@ If multiple routes are declared that could match a given path, they are selected
   2. A path with parameters `/users/:id/info`
   3. A wildcard path `/users/*`
 
+## Retrieving the original route path
+
+Handlers and Middleware may access the route pattern that was used by powermux to route any particular 
+request with the `RequestPath` function.
+
+```go
+servemux.Route("/users/:id/info").Get(userHandler)
+...
+// envoked with /users/andrew/info
+func ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+        originalPath := powermux.RequestPath(req)
+        
+        originalPath == "/users/:id/info"
+        req.URL.Path == "/users/andrew/info"
+}
+```
+
 ## Handler precedence
 
 When multiple handlers are declared on a single route for different methods, they are selected in this order:
