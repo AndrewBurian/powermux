@@ -8,7 +8,10 @@ before_install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
 script:
-  - $HOME/gopath/bin/goveralls -service=travis-ci
+  #- $HOME/gopath/bin/goveralls -service=travis-ci
+  - go test -coverprofile=coverage.txt
   - go test -benchmem -bench .
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 notifications:
   email: false
