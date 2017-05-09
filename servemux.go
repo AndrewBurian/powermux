@@ -16,19 +16,25 @@ type ServeMux struct {
 // ctxKey is the key type used for path parameters in the request context
 type ctxKey string
 
-// ctxRouteNameKey is the type used for the route in the request context.
-// Distinct from ctxKey to avoid collisions
-type ctxRouteNameKey string
-
-var routeKey = ctxRouteNameKey("route_name")
+var (
+	routeKey = ctxKey("route_name")
+	paramKey = ctxKey("params")
+)
 
 // PathParam gets named path parameters and their values from the request
 //
 // the path '/users/:name' given '/users/andrew' will have `PathParam(r, "name")` => `"andrew"`
 // unset values return an empty stringRoutes
 func PathParam(req *http.Request, name string) (value string) {
-	value, _ = req.Context().Value(ctxKey(name)).(string)
+	value = req.Context().Value(paramKey).(map[string]string)[name]
 	return
+}
+
+// PathParams returns the map of all path parameters and their values from the request.
+//
+// Altering the values of this map will affect future calls to PathParam and PathParams for this request.
+func PathParams(req *http.Request) map[string]string {
+	return req.Context().Value(paramKey).(map[string]string)
 }
 
 // RequestPath returns the path definition that the router used to serve this request,
@@ -79,11 +85,7 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := context.WithValue(req.Context(), routeKey, ex.pattern)
 
 	// set all the path params
-	if len(ex.params) > 0 {
-		for key, val := range ex.params {
-			ctx = context.WithValue(ctx, ctxKey(key), val)
-		}
-	}
+	ctx = context.WithValue(ctx, paramKey, ex.params)
 
 	// Save context into request
 	req = req.WithContext(ctx)

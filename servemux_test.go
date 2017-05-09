@@ -649,3 +649,35 @@ func TestServeMux_RequestPath(t *testing.T) {
 		t.Error("Wrong request path returned", reqPath)
 	}
 }
+
+func TestPathParams(t *testing.T) {
+	s := NewServeMux()
+
+	var params map[string]string
+
+	handler := func(res http.ResponseWriter, r *http.Request) {
+		params = PathParams(r)
+	}
+
+	s.Route("/:a/:b/:c/").GetFunc(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/andrew/a/burian", nil)
+
+	s.ServeHTTP(nil, req)
+
+	if len(params) != 3 {
+		t.Error("Wrong number of params returned", len(params))
+	}
+
+	if params["a"] != "andrew" {
+		t.Error("Wrong value for a,", params["a"])
+	}
+
+	if params["b"] != "a" {
+		t.Error("Wrong value for b,", params["b"])
+	}
+
+	if params["c"] != "burian" {
+		t.Error("Wrong value for c,", params["c"])
+	}
+}
