@@ -32,9 +32,13 @@ func PathParam(req *http.Request, name string) (value string) {
 
 // PathParams returns the map of all path parameters and their values from the request.
 //
-// Altering the values of this map will affect future calls to PathParam and PathParams for this request.
-func PathParams(req *http.Request) map[string]string {
-	return req.Context().Value(paramKey).(map[string]string)
+// Altering the values of this map will not affect future calls to PathParam and PathParams.
+func PathParams(req *http.Request) (params map[string]string) {
+	params = make(map[string]string)
+	for k, v := range req.Context().Value(paramKey).(map[string]string) {
+		params[k] = v
+	}
+	return
 }
 
 // RequestPath returns the path definition that the router used to serve this request,
