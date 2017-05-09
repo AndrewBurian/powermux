@@ -1,7 +1,8 @@
 # PowerMux
 
 [![Build Status](https://travis-ci.org/AndrewBurian/powermux.svg?branch=master)](https://travis-ci.org/AndrewBurian/powermux)
-[![Coverage Status](https://coveralls.io/repos/github/AndrewBurian/powermux/badge.svg?branch=master)](https://coveralls.io/github/AndrewBurian/powermux?branch=master)
+[![codecov](https://codecov.io/gh/AndrewBurian/powermux/branch/master/graph/badge.svg)](https://codecov.io/gh/AndrewBurian/powermux)
+
 
 A drop-in replacement for Go's `http.ServeMux` with all the missing features
 
