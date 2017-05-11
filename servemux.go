@@ -149,6 +149,15 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 // they would have been executed
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
 
+	path := r.URL.EscapedPath()
+
+	// Check for redirect
+	if path != "/" && strings.HasSuffix(path, "/") {
+		r.URL.Path = strings.TrimRight(path, "/")
+		redirect := http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
+		return redirect, make([]Middleware,0), r.URL.EscapedPath()
+	}
+
 	// Get the route execution
 	var ex *routeExecution
 	if route, ok := s.hostRoutes[r.URL.Host]; ok {

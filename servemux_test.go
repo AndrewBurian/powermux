@@ -165,6 +165,19 @@ func TestServeMux_RedirectSlash(t *testing.T) {
 	}
 }
 
+// Ensures trailing slash redirects are working and return the redirect path
+func TestServeMux_RedirectSlashPath(t *testing.T) {
+	s := NewServeMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/users/", nil)
+
+	_, path := s.Handler(req)
+
+	if path != "/users" {
+		t.Error("Path not corrected")
+	}
+}
+
 // Ensures we don't redirect the root
 func TestServeMux_RedirectRoot(t *testing.T) {
 	s := NewServeMux()
@@ -741,4 +754,22 @@ func TestServeMux_String(t *testing.T) {
 		t.Error("Root route not included", containsStr(routes, "/"))
 	}
 
+}
+
+func TestServeMux_NotFound(t *testing.T) {
+	s := NewServeMux()
+	s.NotFound(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/llama", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong not found handler returned")
+	}
+
+	// not found should return an empty pattern
+	if path != "" {
+		t.Error("Wrong path returned", path)
+	}
 }
