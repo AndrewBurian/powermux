@@ -860,3 +860,35 @@ func TestServeMux_MiddlewareHost(t *testing.T) {
 		t.Error("wat")
 	}
 }
+
+func TestServeMux_HandleFunc(t *testing.T) {
+	s := NewServeMux()
+
+	rightFunc := dummyHandlerFunc("handlefunc")
+	s.HandleFunc("/", rightFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Body.String() != "handlefunc" {
+		t.Error("Body doesn't match")
+	}
+}
+
+func TestServeMux_ServeHTTPHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.RouteHost("example.com", "/").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Body.String() != "right" {
+		t.Error("Wrong handler executed")
+	}
+}
