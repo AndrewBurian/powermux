@@ -681,3 +681,22 @@ func TestPathParams(t *testing.T) {
 		t.Error("Wrong value for c,", params["c"])
 	}
 }
+
+func TestPathParamsImmutable(t *testing.T) {
+	s := NewServeMux()
+
+	handler := func(res http.ResponseWriter, r *http.Request) {
+		params := PathParams(r)
+		params["id"] = "wrong"
+		params = PathParams(r)
+		if params["id"] == "wrong" {
+			t.Error("Path params aren't immutable")
+		}
+	}
+
+	s.Route("/:id/").GetFunc(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/andrew", nil)
+
+	s.ServeHTTP(nil, req)
+}
