@@ -234,3 +234,39 @@ func TestRoute_MethodHandlerFuncs(t *testing.T) {
 		}
 	}
 }
+
+func TestRoute_AnyFunc(t *testing.T) {
+	s := NewServeMux()
+	r := s.Route("/")
+
+	rightFunc := dummyHandlerFunc("any")
+
+	r.AnyFunc(rightFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Body.String() != "any" {
+		t.Error("Body doesn't match")
+	}
+}
+
+func TestRoute_NotFoundFunc(t *testing.T) {
+	s := NewServeMux()
+	r := s.Route("/")
+
+	rightFunc := dummyHandlerFunc("notFound")
+
+	r.NotFoundFunc(rightFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Body.String() != "notFound" {
+		t.Error("Body doesn't match")
+	}
+}

@@ -773,3 +773,22 @@ func TestServeMux_NotFound(t *testing.T) {
 		t.Error("Wrong path returned", path)
 	}
 }
+
+func TestServeMux_NotFoundDepth(t *testing.T) {
+	s := NewServeMux()
+	s.NotFound(wrongHandler)
+	s.Route("/get").NotFound(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/get/llama", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong not found handler returned")
+	}
+
+	// not found should return an empty pattern
+	if path != "" {
+		t.Error("Wrong path returned", path)
+	}
+}
