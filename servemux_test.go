@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -699,4 +700,45 @@ func TestPathParamsImmutable(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/andrew", nil)
 
 	s.ServeHTTP(nil, req)
+}
+
+func containsStr(strs []string, s string) int {
+	for i, str := range strs {
+		if strings.HasPrefix(str, s+"\t") {
+			return i
+		}
+	}
+	return -1
+}
+func TestServeMux_String(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").NotFound(rightHandler)
+
+	s.Route("/empty")
+
+	s.Route("/depth/one").Any(rightHandler)
+
+	s.Route("/multi").Get(rightHandler).Post(rightHandler)
+
+	str := strings.Trim(s.String(), "\n")
+	routes := strings.Split(str, "\n")
+
+	t.Logf("String:\n%s", str)
+
+	// right number of statements
+	if len(routes) != 3 {
+		t.Error("Wrong number of routes returned", len(routes))
+	}
+
+	// omit empty routes
+	if containsStr(routes, "/empty") != -1 {
+		t.Error("Empty route returned")
+	}
+
+	// root handler included properly
+	if containsStr(routes, "/") != 0 {
+		t.Error("Root route not included", containsStr(routes, "/"))
+	}
+
 }
