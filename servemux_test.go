@@ -734,13 +734,15 @@ func TestServeMux_String(t *testing.T) {
 
 	s.Route("/multi").Get(rightHandler).Post(rightHandler)
 
+	s.RouteHost("example.com", "/another").Any(rightHandler)
+
 	str := strings.Trim(s.String(), "\n")
 	routes := strings.Split(str, "\n")
 
 	t.Logf("String:\n%s", str)
 
 	// right number of statements
-	if len(routes) != 3 {
+	if len(routes) != 4 {
 		t.Error("Wrong number of routes returned", len(routes))
 	}
 
@@ -752,6 +754,11 @@ func TestServeMux_String(t *testing.T) {
 	// root handler included properly
 	if containsStr(routes, "/") != 0 {
 		t.Error("Root route not included", containsStr(routes, "/"))
+	}
+
+	// host route included properly
+	if containsStr(routes, "example.com/another") == 0 {
+		t.Error("Did not inlcude host specific route")
 	}
 
 }

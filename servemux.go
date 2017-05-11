@@ -155,7 +155,7 @@ func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middle
 	if path != "/" && strings.HasSuffix(path, "/") {
 		r.URL.Path = strings.TrimRight(path, "/")
 		redirect := http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
-		return redirect, make([]Middleware,0), r.URL.EscapedPath()
+		return redirect, make([]Middleware, 0), r.URL.EscapedPath()
 	}
 
 	// Get the route execution
@@ -196,13 +196,21 @@ func (s *ServeMux) NotFound(handler http.Handler) {
 
 // String returns a list of all routes registered with this server
 func (s *ServeMux) String() string {
-	routes := make([]string, 0)
+	routes := make([]string, 0, 1)
 	s.baseRoute.stringRoutes(&routes)
 
 	buf := bytes.Buffer{}
 
 	for _, route := range routes {
 		buf.WriteString(route + "\n")
+	}
+
+	for host, baseRoute := range s.hostRoutes {
+		routes = routes[0:0]
+		baseRoute.stringRoutes(&routes)
+		for _, route := range routes {
+			buf.WriteString(host + route + "\n")
+		}
 	}
 
 	return buf.String()
