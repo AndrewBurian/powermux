@@ -207,12 +207,6 @@ func (r *Route) getHandler(method string, ex *routeExecution) {
 		return
 	}
 
-	// generate an options handler if none is already set
-	if method == http.MethodOptions && ex.handler == nil {
-		ex.handler = r.defaultOptions()
-		return
-	}
-
 	// last ditch effort is to generate our own method not allowed handler
 	// this is regenerated each time in case routes are added during runtime
 	// not generated if a previous handler is already set

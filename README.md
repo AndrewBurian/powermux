@@ -189,5 +189,4 @@ When multiple handlers are declared on a single route for different methods, the
   1. An exact method match
   2. HEAD requests can use GET handlers
   3. The ANY handler
-  4. A generated Options handler if this is an options request and no previous options handler is set above this route
-  5. A generated Method Not Allowed handler
+  4. A generated Method Not Allowed handler

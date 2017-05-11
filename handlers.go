@@ -51,9 +51,3 @@ func (r *Route) methodNotAllowed() http.Handler {
 
 	return nil
 }
-
-// defaultOptions generates an options handler for this route
-func (r *Route) defaultOptions() http.Handler {
-	//todo not even sure if this is actually a good idea
-	return nil
-}
