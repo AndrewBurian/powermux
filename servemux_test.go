@@ -799,3 +799,64 @@ func TestServeMux_NotFoundDepth(t *testing.T) {
 		t.Error("Wrong path returned", path)
 	}
 }
+
+func TestServeMux_RouteHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.RouteHost("example.com", "/").Get(rightHandler)
+	s.Route("/").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+	if path != "/" {
+		t.Error("Wrong path set")
+	}
+}
+
+func TestServeMux_HandleHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.HandleHost("example.com", "/", rightHandler)
+	s.Handle("/", wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+	if path != "/" {
+		t.Error("Wrong path set")
+	}
+}
+
+func TestServeMux_MiddlewareHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.MiddlewareHost("example.com", "/", mid1)
+	s.HandleHost("example.com", "/", rightHandler)
+
+	s.Middleware("/", mid2)
+	s.Handle("/", wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 1, got", len(mids))
+	}
+
+	if mids[0] != mid1 {
+		t.Error("wat")
+	}
+}

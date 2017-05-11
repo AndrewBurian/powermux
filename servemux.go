@@ -108,7 +108,7 @@ func (s *ServeMux) Handle(path string, handler http.Handler) {
 // HandleHost registers the handler for the given pattern and host.
 // If a handler already exists for pattern it is overwritten.
 func (s *ServeMux) HandleHost(host, path string, handler http.Handler) {
-	s.RouteHost(path, host).Any(handler)
+	s.RouteHost(host, path).Any(handler)
 }
 
 // Middleware adds middleware for the given pattern.
