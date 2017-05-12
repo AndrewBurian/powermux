@@ -58,44 +58,48 @@ func NewServeMux() *ServeMux {
 	return s
 }
 
-// ServeHTTP dispatches the request to the handler whose pattern most closely matches the request URL.
-func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (s *ServeMux) getAll(r *http.Request) (http.Handler, []Middleware, string, map[string]string) {
+	path := r.URL.EscapedPath()
 
-	// Redirect trailing slashes
-	if req.URL.Path != "/" && strings.HasSuffix(req.URL.Path, "/") {
-		req.URL.Path = strings.TrimRight(req.URL.Path, "/")
-		redirect := http.RedirectHandler(req.URL.RequestURI(), http.StatusPermanentRedirect)
-		redirect.ServeHTTP(rw, req)
-		return
+	// Check for redirect
+	if path != "/" && strings.HasSuffix(path, "/") {
+		r.URL.Path = strings.TrimRight(path, "/")
+		redirect := http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
+		return redirect, make([]Middleware, 0), r.URL.EscapedPath(), nil
 	}
 
 	// Get the route execution
 	var ex *routeExecution
-
-	// check if we have a host specific route tree to consult
-	hostRoute, ok := s.hostRoutes[req.URL.Host]
-	if ok {
-		ex = hostRoute.execute(req.Method, req.URL.EscapedPath())
+	if route, ok := s.hostRoutes[r.URL.Host]; ok {
+		ex = route.execute(r.Method, r.URL.EscapedPath())
 	} else {
-		ex = s.baseRoute.execute(req.Method, req.URL.EscapedPath())
+		ex = s.baseRoute.execute(r.Method, r.URL.EscapedPath())
 	}
 
-	// If there is no handler, run the not found handler
+	// fall back on not found handler if necessary
 	if ex.handler == nil {
 		ex.handler = ex.notFound
 	}
 
+	return ex.handler, ex.middleware, ex.pattern, ex.params
+}
+
+// ServeHTTP dispatches the request to the handler whose pattern most closely matches the request URL.
+func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+
+	handler, middleware, pattern, params := s.getAll(req)
+
 	// Save the route path
-	ctx := context.WithValue(req.Context(), routeKey, ex.pattern)
+	ctx := context.WithValue(req.Context(), routeKey, pattern)
 
 	// set all the path params
-	ctx = context.WithValue(ctx, paramKey, ex.params)
+	ctx = context.WithValue(ctx, paramKey, params)
 
 	// Save context into request
 	req = req.WithContext(ctx)
 
 	// Run a middleware/handler closure to nest all middleware
-	f := getNextMiddleware(ex.middleware, ex.handler)
+	f := getNextMiddleware(middleware, handler)
 	f(rw, req)
 }
 
@@ -148,30 +152,8 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 // HandlerAndMiddleware returns the same as Handler, but with the addition of an array of middleware, in the order
 // they would have been executed
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
-
-	path := r.URL.EscapedPath()
-
-	// Check for redirect
-	if path != "/" && strings.HasSuffix(path, "/") {
-		r.URL.Path = strings.TrimRight(path, "/")
-		redirect := http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
-		return redirect, make([]Middleware, 0), r.URL.EscapedPath()
-	}
-
-	// Get the route execution
-	var ex *routeExecution
-	if route, ok := s.hostRoutes[r.URL.Host]; ok {
-		ex = route.execute(r.Method, r.URL.EscapedPath())
-	} else {
-		ex = s.baseRoute.execute(r.Method, r.URL.EscapedPath())
-	}
-
-	// fall back on not found handler if necessary
-	if ex.handler == nil {
-		ex.handler = ex.notFound
-	}
-
-	return ex.handler, ex.middleware, ex.pattern
+	handler, middlewares, pattern, _ := s.getAll(r)
+	return handler, middlewares, pattern
 }
 
 // Route returns the route from the root of the domain to the given pattern
