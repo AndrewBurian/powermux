@@ -60,19 +60,16 @@ func NewServeMux() *ServeMux {
 	return s
 }
 
-func (s *ServeMux) getAll(r *http.Request) (http.Handler, []Middleware, string, map[string]string) {
+func (s *ServeMux) getAll(r *http.Request, ex *routeExecution) {
 	path := r.URL.EscapedPath()
 
 	// Check for redirect
 	if path != "/" && strings.HasSuffix(path, "/") {
 		r.URL.Path = strings.TrimRight(path, "/")
-		redirect := http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
-		return redirect, make([]Middleware, 0), r.URL.EscapedPath(), nil
+		ex.handler = http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
+		ex.pattern = r.URL.EscapedPath()
+		return
 	}
-
-	// Get a route execution from the pool
-	ex := s.executionPool.Get()
-	defer s.executionPool.Put(ex)
 
 	// fill it
 	if route, ok := s.hostRoutes[r.URL.Host]; ok {
@@ -86,25 +83,28 @@ func (s *ServeMux) getAll(r *http.Request) (http.Handler, []Middleware, string, 
 		ex.handler = ex.notFound
 	}
 
-	return ex.handler, ex.middleware, ex.pattern, ex.params
+	return
 }
 
 // ServeHTTP dispatches the request to the handler whose pattern most closely matches the request URL.
 func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Get a route execution from the pool
+	ex := s.executionPool.Get()
+	defer s.executionPool.Put(ex)
 
-	handler, middleware, pattern, params := s.getAll(req)
+	s.getAll(req, ex)
 
 	// Save the route path
-	ctx := context.WithValue(req.Context(), routeKey, pattern)
+	ctx := context.WithValue(req.Context(), routeKey, ex.pattern)
 
 	// set all the path params
-	ctx = context.WithValue(ctx, paramKey, params)
+	ctx = context.WithValue(ctx, paramKey, ex.params)
 
 	// Save context into request
 	req = req.WithContext(ctx)
 
 	// Run a middleware/handler closure to nest all middleware
-	f := getNextMiddleware(middleware, handler)
+	f := getNextMiddleware(ex.middleware, ex.handler)
 	f(rw, req)
 }
 
@@ -157,8 +157,13 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 // HandlerAndMiddleware returns the same as Handler, but with the addition of an array of middleware, in the order
 // they would have been executed
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
-	handler, middlewares, pattern, _ := s.getAll(r)
-	return handler, middlewares, pattern
+	// create a new execution so fields will live outside of this function
+	ex := &routeExecution{
+		middleware: make([]Middleware, 0),
+		params:     make(map[string]string),
+	}
+	s.getAll(r, ex)
+	return ex.handler, ex.middleware, ex.pattern
 }
 
 // Route returns the route from the root of the domain to the given pattern
