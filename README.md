@@ -103,7 +103,7 @@ mux.Route("/c").Middleware(midC)
 
 ## Host specific routes
 
-Unlike the Go default multiplexer, host specific routes need to be handled separately. Use the `*Host` varients of
+Unlike the Go default multiplexer, host specific routes need to be handled separately. Use the `*Host` variants of
 common functions to achieve this.
 ```go
 mux.Route("/test")
