@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -161,6 +162,19 @@ func TestServeMux_RedirectSlash(t *testing.T) {
 
 	if rec.HeaderMap.Get("Location") != "/users" {
 		t.Error("Mis-redirected")
+	}
+}
+
+// Ensures trailing slash redirects are working and return the redirect path
+func TestServeMux_RedirectSlashPath(t *testing.T) {
+	s := NewServeMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/users/", nil)
+
+	_, path := s.Handler(req)
+
+	if path != "/users" {
+		t.Error("Path not corrected")
 	}
 }
 
@@ -679,5 +693,202 @@ func TestPathParams(t *testing.T) {
 
 	if params["c"] != "burian" {
 		t.Error("Wrong value for c,", params["c"])
+	}
+}
+
+func TestPathParamsImmutable(t *testing.T) {
+	s := NewServeMux()
+
+	handler := func(res http.ResponseWriter, r *http.Request) {
+		params := PathParams(r)
+		params["id"] = "wrong"
+		params = PathParams(r)
+		if params["id"] == "wrong" {
+			t.Error("Path params aren't immutable")
+		}
+	}
+
+	s.Route("/:id/").GetFunc(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/andrew", nil)
+
+	s.ServeHTTP(nil, req)
+}
+
+func containsStr(strs []string, s string) int {
+	for i, str := range strs {
+		if strings.HasPrefix(str, s+"\t") {
+			return i
+		}
+	}
+	return -1
+}
+func TestServeMux_String(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").NotFound(rightHandler)
+
+	s.Route("/empty")
+
+	s.Route("/depth/one").Any(rightHandler)
+
+	s.Route("/multi").Get(rightHandler).Post(rightHandler)
+
+	s.RouteHost("example.com", "/another").Any(rightHandler)
+
+	str := strings.Trim(s.String(), "\n")
+	routes := strings.Split(str, "\n")
+
+	t.Logf("String:\n%s", str)
+
+	// right number of statements
+	if len(routes) != 4 {
+		t.Error("Wrong number of routes returned", len(routes))
+	}
+
+	// omit empty routes
+	if containsStr(routes, "/empty") != -1 {
+		t.Error("Empty route returned")
+	}
+
+	// root handler included properly
+	if containsStr(routes, "/") != 0 {
+		t.Error("Root route not included", containsStr(routes, "/"))
+	}
+
+	// host route included properly
+	if containsStr(routes, "example.com/another") == 0 {
+		t.Error("Did not inlcude host specific route")
+	}
+
+}
+
+func TestServeMux_NotFound(t *testing.T) {
+	s := NewServeMux()
+	s.NotFound(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/llama", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong not found handler returned")
+	}
+
+	// not found should return an empty pattern
+	if path != "" {
+		t.Error("Wrong path returned", path)
+	}
+}
+
+func TestServeMux_NotFoundDepth(t *testing.T) {
+	s := NewServeMux()
+	s.NotFound(wrongHandler)
+	s.Route("/get").NotFound(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/get/llama", nil)
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong not found handler returned")
+	}
+
+	// not found should return an empty pattern
+	if path != "" {
+		t.Error("Wrong path returned", path)
+	}
+}
+
+func TestServeMux_RouteHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.RouteHost("example.com", "/").Get(rightHandler)
+	s.Route("/").Get(wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+	if path != "/" {
+		t.Error("Wrong path set")
+	}
+}
+
+func TestServeMux_HandleHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.HandleHost("example.com", "/", rightHandler)
+	s.Handle("/", wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+
+	h, path := s.Handler(req)
+
+	if h != rightHandler {
+		t.Error("Wrong handler returned")
+	}
+	if path != "/" {
+		t.Error("Wrong path set")
+	}
+}
+
+func TestServeMux_MiddlewareHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.MiddlewareHost("example.com", "/", mid1)
+	s.HandleHost("example.com", "/", rightHandler)
+
+	s.Middleware("/", mid2)
+	s.Handle("/", wrongHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 1, got", len(mids))
+	}
+
+	if mids[0] != mid1 {
+		t.Error("wat")
+	}
+}
+
+func TestServeMux_HandleFunc(t *testing.T) {
+	s := NewServeMux()
+
+	rightFunc := dummyHandlerFunc("handlefunc")
+	s.HandleFunc("/", rightFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Body.String() != "handlefunc" {
+		t.Error("Body doesn't match")
+	}
+}
+
+func TestServeMux_ServeHTTPHost(t *testing.T) {
+	s := NewServeMux()
+
+	s.RouteHost("example.com", "/").Get(rightHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Host = "example.com"
+	rec := httptest.NewRecorder()
+
+	s.ServeHTTP(rec, req)
+
+	if rec.Body.String() != "right" {
+		t.Error("Wrong handler executed")
 	}
 }

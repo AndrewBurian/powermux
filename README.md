@@ -101,6 +101,17 @@ mux.Route("/c").Middleware(midC)
 // then any handlers on Route("/a/b")
 ```
 
+## Host specific routes
+
+Unlike the Go default multiplexer, host specific routes need to be handled separately. Use the `*Host` variants of
+common functions to achieve this.
+```go
+mux.Route("/test")
+mux.RouteHost("example.com", "/text")
+
+// request to any host other than example.com will go to the first handler
+```
+
 ## Not Found and OPTIONS handlers
 
 `Options` and `NotFound` handlers are treated specially. If one is not found on the Route node requested, 
@@ -189,5 +200,4 @@ When multiple handlers are declared on a single route for different methods, the
   1. An exact method match
   2. HEAD requests can use GET handlers
   3. The ANY handler
-  4. A generated Options handler if this is an options request and no previous options handler is set above this route
-  5. A generated Method Not Allowed handler
+  4. A generated Method Not Allowed handler

@@ -131,11 +131,9 @@ func (r *Route) getExecution(method string, pathParts []string, ex *routeExecuti
 
 		// save path parameters
 		if curRoute.isParam {
-			value, err := url.PathUnescape(pathParts[0])
-			if err != nil {
-				// TODO: maybe handle errors more gracefully
-				panic(err)
-			}
+			// Errors here will never happen as Go's http server sanitizes inputs before
+			// they are handled by the mux, therefore the error return is ignored
+			value, _ := url.PathUnescape(pathParts[0])
 			ex.params[curRoute.paramName] = value
 		}
 
@@ -204,12 +202,6 @@ func (r *Route) getHandler(method string, ex *routeExecution) {
 	// check the ANY handler
 	if h, ok := r.handlers[methodAny]; ok {
 		ex.handler = h
-		return
-	}
-
-	// generate an options handler if none is already set
-	if method == http.MethodOptions && ex.handler == nil {
-		ex.handler = r.defaultOptions()
 		return
 	}
 
