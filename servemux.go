@@ -90,7 +90,6 @@ func (s *ServeMux) getAll(r *http.Request, ex *routeExecution) {
 func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Get a route execution from the pool
 	ex := s.executionPool.Get()
-	defer s.executionPool.Put(ex)
 
 	s.getAll(req, ex)
 
@@ -106,6 +105,8 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Run a middleware/handler closure to nest all middleware
 	f := getNextMiddleware(ex.middleware, ex.handler)
 	f(rw, req)
+
+	s.executionPool.Put(ex)
 }
 
 // Handle registers the handler for the given pattern.
