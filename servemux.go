@@ -159,10 +159,7 @@ func (s *ServeMux) Handler(r *http.Request) (http.Handler, string) {
 // they would have been executed
 func (s *ServeMux) HandlerAndMiddleware(r *http.Request) (http.Handler, []Middleware, string) {
 	// create a new execution so fields will live outside of this function
-	ex := &routeExecution{
-		middleware: make([]Middleware, 0),
-		params:     make(map[string]string),
-	}
+	ex := newExecution()
 	s.getAll(r, ex)
 	return ex.handler, ex.middleware, ex.pattern
 }

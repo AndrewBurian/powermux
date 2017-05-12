@@ -38,15 +38,6 @@ func (l childList) Search(pattern string) *Route {
 	return nil
 }
 
-// routeExecution is the complete instructions for running serve on a route
-type routeExecution struct {
-	pattern    string
-	params     map[string]string
-	notFound   http.Handler
-	middleware []Middleware
-	handler    http.Handler
-}
-
 // A Route represents a specific path for a request.
 // Routes can be absolute paths, rooted subtrees, or path parameters that accept any stringRoutes.
 type Route struct {
