@@ -9,8 +9,9 @@ import (
 
 // ServeMux is the multiplexer for http requests
 type ServeMux struct {
-	baseRoute  *Route
-	hostRoutes map[string]*Route
+	baseRoute     *Route
+	hostRoutes    map[string]*Route
+	executionPool *executionPool
 }
 
 // ctxKey is the key type used for path parameters in the request context
@@ -51,8 +52,9 @@ func RequestPath(req *http.Request) (value string) {
 // NewServeMux creates a new multiplexer, and sets up a default not found handler
 func NewServeMux() *ServeMux {
 	s := &ServeMux{
-		baseRoute:  newRoute(),
-		hostRoutes: make(map[string]*Route),
+		baseRoute:     newRoute(),
+		hostRoutes:    make(map[string]*Route),
+		executionPool: newExecutionPool(),
 	}
 	s.NotFound(http.NotFoundHandler())
 	return s
@@ -68,12 +70,15 @@ func (s *ServeMux) getAll(r *http.Request) (http.Handler, []Middleware, string, 
 		return redirect, make([]Middleware, 0), r.URL.EscapedPath(), nil
 	}
 
-	// Get the route execution
-	var ex *routeExecution
+	// Get a route execution from the pool
+	ex := s.executionPool.Get()
+	defer s.executionPool.Put(ex)
+
+	// fill it
 	if route, ok := s.hostRoutes[r.URL.Host]; ok {
-		ex = route.execute(r.Method, r.URL.EscapedPath())
+		route.execute(ex, r.Method, r.URL.EscapedPath())
 	} else {
-		ex = s.baseRoute.execute(r.Method, r.URL.EscapedPath())
+		s.baseRoute.execute(ex, r.Method, r.URL.EscapedPath())
 	}
 
 	// fall back on not found handler if necessary

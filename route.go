@@ -84,7 +84,7 @@ func newRoute() *Route {
 
 // execute sets up the tree traversal required to get the execution instructions for
 // a route.
-func (r *Route) execute(method, pattern string) *routeExecution {
+func (r *Route) execute(ex *routeExecution, method, pattern string) {
 
 	pathParts := strings.Split(pattern, "/")
 
@@ -92,17 +92,8 @@ func (r *Route) execute(method, pattern string) *routeExecution {
 		pathParts = pathParts[1:]
 	}
 
-	// Create a new routeExecution
-	ex := &routeExecution{
-		middleware: make([]Middleware, 0),
-		params:     make(map[string]string),
-	}
-
 	// Fill the execution
 	r.getExecution(method, pathParts, ex)
-
-	// return the result
-	return ex
 }
 
 // getExecution is a recursive step in the tree traversal. It checks to see if this node matches,
