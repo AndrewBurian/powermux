@@ -18,25 +18,30 @@ type ServeMux struct {
 type ctxKey string
 
 var (
-	routeKey = ctxKey("route_name")
-	paramKey = ctxKey("params")
+	executionKey = ctxKey("ex")
 )
+
+func getRequestExecution(req *http.Request) *routeExecution {
+	ex := req.Context().Value(executionKey).(*routeExecution)
+	return ex
+}
 
 // PathParam gets named path parameters and their values from the request
 //
 // the path '/users/:name' given '/users/andrew' will have `PathParam(r, "name")` => `"andrew"`
 // unset values return an empty stringRoutes
 func PathParam(req *http.Request, name string) (value string) {
-	value = req.Context().Value(paramKey).(map[string]string)[name]
-	return
+	ex := getRequestExecution(req)
+	return ex.params[name]
 }
 
 // PathParams returns the map of all path parameters and their values from the request.
 //
 // Altering the values of this map will not affect future calls to PathParam and PathParams.
 func PathParams(req *http.Request) (params map[string]string) {
+	ex := getRequestExecution(req)
 	params = make(map[string]string)
-	for k, v := range req.Context().Value(paramKey).(map[string]string) {
+	for k, v := range ex.params {
 		params[k] = v
 	}
 	return
@@ -45,8 +50,8 @@ func PathParams(req *http.Request) (params map[string]string) {
 // RequestPath returns the path definition that the router used to serve this request,
 // without any parameter substitution.
 func RequestPath(req *http.Request) (value string) {
-	value, _ = req.Context().Value(routeKey).(string)
-	return value
+	ex := getRequestExecution(req)
+	return ex.pattern
 }
 
 // NewServeMux creates a new multiplexer, and sets up a default not found handler
@@ -93,11 +98,8 @@ func (s *ServeMux) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	s.getAll(req, ex)
 
-	// Save the route path
-	ctx := context.WithValue(req.Context(), routeKey, ex.pattern)
-
-	// set all the path params
-	ctx = context.WithValue(ctx, paramKey, ex.params)
+	// Save the execution
+	ctx := context.WithValue(req.Context(), executionKey, ex)
 
 	// Save context into request
 	req = req.WithContext(ctx)
