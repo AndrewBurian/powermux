@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 )
 
 const (
@@ -36,6 +37,12 @@ func (l childList) Search(pattern string) *Route {
 	}
 
 	return nil
+}
+
+var pathPartsPool = &sync.Pool{
+	New: func() interface{} {
+		return make([]string, 0, 5)
+	},
 }
 
 // A Route represents a specific path for a request.
@@ -77,14 +84,28 @@ func newRoute() *Route {
 // a route.
 func (r *Route) execute(ex *routeExecution, method, pattern string) {
 
-	pathParts := strings.Split(pattern, "/")
+	pathParts := pathPartsPool.Get().([]string)[0:0]
+	pathParts = append(pathParts, "")
+	start := 1
+	for i := 1; i < len(pattern); i++ {
+		if pattern[i] == '/' {
+			pathParts = append(pathParts, pattern[start:i])
+			i++
+			start = i
+		}
+	}
 
-	if pattern == "/" {
-		pathParts = pathParts[1:]
+	// get the trailing path param
+	if pattern != "/" {
+
+		pathParts = append(pathParts, pattern[start:])
 	}
 
 	// Fill the execution
 	r.getExecution(method, pathParts, ex)
+
+	// return path parts
+	pathPartsPool.Put(pathParts)
 }
 
 // getExecution is a recursive step in the tree traversal. It checks to see if this node matches,
