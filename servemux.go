@@ -78,9 +78,9 @@ func (s *ServeMux) getAll(r *http.Request, ex *routeExecution) {
 
 	// fill it
 	if route, ok := s.hostRoutes[r.URL.Host]; ok {
-		route.execute(ex, r.Method, r.URL.EscapedPath())
+		route.execute(ex, r.Method, path)
 	} else {
-		s.baseRoute.execute(ex, r.Method, r.URL.EscapedPath())
+		s.baseRoute.execute(ex, r.Method, path)
 	}
 
 	// fall back on not found handler if necessary

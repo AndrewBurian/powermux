@@ -97,7 +97,6 @@ func (r *Route) execute(ex *routeExecution, method, pattern string) {
 
 	// get the trailing path param
 	if pattern != "/" {
-
 		pathParts = append(pathParts, pattern[start:])
 	}
 
