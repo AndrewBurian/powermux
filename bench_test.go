@@ -95,3 +95,16 @@ func BenchmarkFan(b *testing.B) {
 		r.ServeHTTP(nil, requests[i%len(requests)])
 	}
 }
+
+func BenchmarkSingleRouteParallel(b *testing.B) {
+	r := NewServeMux()
+	r.Route("/").Any(emptyHandle)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			r.ServeHTTP(nil, req)
+		}
+	})
+}
