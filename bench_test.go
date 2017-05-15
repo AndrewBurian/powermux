@@ -102,9 +102,63 @@ func BenchmarkSingleRouteParallel(b *testing.B) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	b.ResetTimer()
 
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
+	b.RunParallel(func(b *testing.PB) {
+		for b.Next() {
 			r.ServeHTTP(nil, req)
+		}
+	})
+}
+
+func BenchmarkShallowAndWideParallel(b *testing.B) {
+	r := NewServeMux()
+	requests := make([]*http.Request, 0, MAX_WIDTH)
+	for i := 0; i < MAX_WIDTH; i++ {
+		route := "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
+		r.Handle(route, emptyHandle)
+		requests = append(requests, httptest.NewRequest(http.MethodGet, route, nil))
+	}
+	b.ResetTimer()
+
+	b.RunParallel(func(b *testing.PB) {
+		for i := 0; b.Next(); i++ {
+			r.ServeHTTP(nil, requests[i%MAX_WIDTH])
+		}
+	})
+
+}
+
+// BenchmarkNarrowAndDeep is powermux's worst-case scenario. One route at the end
+// of a really long path
+func BenchmarkNarrowAndDeepParallel(b *testing.B) {
+	r := NewServeMux()
+	var route string
+	for i := 0; i < MAX_DEPTH; i++ {
+		route += "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
+	}
+	r.Handle(route, emptyHandle)
+	req := httptest.NewRequest(http.MethodGet, route, nil)
+	b.ResetTimer()
+
+	b.RunParallel(func(b *testing.PB) {
+		for b.Next() {
+			r.ServeHTTP(nil, req)
+		}
+	})
+}
+
+func BenchmarkFanParallel(b *testing.B) {
+	r := NewServeMux()
+	routes := addFanRoutes(FAN_DEPTH, r.Route("/"))
+	requests := make([]*http.Request, 0, len(routes))
+	for _, route := range routes {
+		req := httptest.NewRequest(http.MethodGet, route, nil)
+		requests = append(requests, req)
+	}
+	b.ResetTimer()
+
+	b.RunParallel(func(b *testing.PB) {
+		for i := 0; b.Next(); i++ {
+			r.ServeHTTP(nil, requests[i%len(requests)])
 		}
 	})
 }
