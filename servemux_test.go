@@ -14,7 +14,7 @@ func (h dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(h))
 }
 
-func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request, n NextMiddlewareFunc) {
+func (h dummyHandler) ServeHTTPMiddleware(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
 	io.WriteString(w, string(h))
 	n(w, r)
 }
@@ -625,7 +625,7 @@ func TestServeMux_MiddlewareFunc(t *testing.T) {
 
 	var called bool
 
-	midFunc := func(res http.ResponseWriter, req *http.Request, next NextMiddlewareFunc) {
+	midFunc := func(res http.ResponseWriter, req *http.Request, next func(http.ResponseWriter, *http.Request)) {
 		called = true
 	}
 

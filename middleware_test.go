@@ -9,17 +9,17 @@ import (
 )
 
 func TestMiddleware_getNextMiddleware(t *testing.T) {
-	m1 := func(w http.ResponseWriter, r *http.Request, n NextMiddlewareFunc) {
+	m1 := func(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
 		io.WriteString(w, "middleware 1- ")
 		n(w, r)
 	}
 
-	m2 := func(w http.ResponseWriter, r *http.Request, n NextMiddlewareFunc) {
+	m2 := func(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
 		io.WriteString(w, "middleware 2- ")
 		n(w, r)
 	}
 
-	m3 := func(w http.ResponseWriter, r *http.Request, n NextMiddlewareFunc) {
+	m3 := func(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
 		n(w, r)
 		io.WriteString(w, "middleware 3- ")
 	}

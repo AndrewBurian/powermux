@@ -4,22 +4,19 @@ import (
 	"net/http"
 )
 
-// NextMiddlewareFunc is the function signature for the next parameter in ServerHTTPMiddleware
-type NextMiddlewareFunc func(http.ResponseWriter, *http.Request)
-
 //The MiddlewareFunc type is an adapter to allow the use of ordinary functions as HTTP middlewares.
 //
 // If f is a function with the appropriate signature, HandlerFunc(f) is a Handler that calls f.
-type MiddlewareFunc func(http.ResponseWriter, *http.Request, NextMiddlewareFunc)
+type MiddlewareFunc func(http.ResponseWriter, *http.Request, func(http.ResponseWriter, *http.Request))
 
 // ServeHTTPMiddleware calls f(w, r, n).
-func (m MiddlewareFunc) ServeHTTPMiddleware(rw http.ResponseWriter, req *http.Request, n NextMiddlewareFunc) {
+func (m MiddlewareFunc) ServeHTTPMiddleware(rw http.ResponseWriter, req *http.Request, n func(http.ResponseWriter, *http.Request)) {
 	m(rw, req, n)
 }
 
 // Middleware handles HTTP requests and optionally passes them along to the next handler in the chain.
 type Middleware interface {
-	ServeHTTPMiddleware(http.ResponseWriter, *http.Request, NextMiddlewareFunc)
+	ServeHTTPMiddleware(http.ResponseWriter, *http.Request, func(http.ResponseWriter, *http.Request))
 }
 
 // getNextMiddleware returns the first middleware of a recursive closure.
