@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
-	"github.com/andrewburian/powermux"
+	"github.com/AndrewBurian/powermux"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/pg.v5"
 	"net/http"
 )

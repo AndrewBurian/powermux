@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/andrewburian/powermux"
+	"github.com/AndrewBurian/powermux"
 	"gopkg.in/pg.v5"
 	"net/http"
 )
