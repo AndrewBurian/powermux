@@ -42,7 +42,7 @@ func (l childList) Search(pattern string) *Route {
 type verbFlag uint16
 
 const (
-	flagAny = verbFlag(0xFFFF)
+	flagAny = ^verbFlag(0)
 	flagGet = verbFlag(1) << iota
 	flagHead
 	flagPost
@@ -474,7 +474,7 @@ func (r *Route) MiddlewareExcept(m Middleware, verbs ...string) *Route {
 	}
 
 	// then invert to get Except
-	f = f ^ 0xFFFF
+	f = ^f
 
 	// Equivalent to none
 	if f == 0 {
