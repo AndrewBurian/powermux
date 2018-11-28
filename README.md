@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/AndrewBurian/powermux.svg?branch=master)](https://travis-ci.org/AndrewBurian/powermux)
 [![codecov](https://codecov.io/gh/AndrewBurian/powermux/branch/master/graph/badge.svg)](https://codecov.io/gh/AndrewBurian/powermux)
+[![Release](https://img.shields.io/github/release/AndrewBurian/powermux.svg)](https://github.com/AndrewBurian/powermux/releases)
 
 
 A drop-in replacement for Go's `http.ServeMux` with all the missing features
