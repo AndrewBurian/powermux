@@ -428,6 +428,68 @@ func (r *Route) Middleware(m Middleware) *Route {
 	return r
 }
 
+// MiddlewareOnly adds a middleware to this node, but will only be executed
+// for requests with the verb specified.
+// Verbs are case sensitive, and should use the `http.Method*` constants.
+// Panics if any of the verbs provided are unknown.
+func (r *Route) MiddlewareOnly(m Middleware, verbs ...string) *Route {
+
+	// Equivalent to none
+	if len(verbs) == 0 {
+		return r
+	}
+
+	f := verbFlag(0)
+	for _, verb := range verbs {
+		f = f | getVerbFlag(verb)
+	}
+
+	// we don't check if this is equivalent to flagAny since any
+	// actually has more flags than there are verbs
+
+	r.middleware = append(r.middleware, &middlewareVerb{
+		mid:  m,
+		verb: f,
+	})
+
+	return r
+
+}
+
+// MiddlewareExcept adds a middleware to this node, but will only be executed
+// for requests that are not in the list of verbs.
+// Verbs are case sensitive, and should use the `http.Method*` constants.
+// Panics if any of the verbs provided are unknown.
+func (r *Route) MiddlewareExcept(m Middleware, verbs ...string) *Route {
+
+	// Equivalent to any
+	if len(verbs) == 0 {
+		return r.Middleware(m)
+	}
+
+	// build the list as if we are calculating Only
+	f := verbFlag(0)
+	for _, verb := range verbs {
+		f = f | getVerbFlag(verb)
+	}
+
+	// then invert to get Except
+	f = f ^ 0xFFFF
+
+	// Equivalent to none
+	if f == 0 {
+		return r
+	}
+
+	r.middleware = append(r.middleware, &middlewareVerb{
+		mid:  m,
+		verb: f,
+	})
+
+	return r
+
+}
+
 // MiddlewareFunc registers a plain function as a middleware.
 func (r *Route) MiddlewareFunc(m MiddlewareFunc) *Route {
 	return r.Middleware(MiddlewareFunc(m))
