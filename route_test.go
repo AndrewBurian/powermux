@@ -270,3 +270,11 @@ func TestRoute_NotFoundFunc(t *testing.T) {
 		t.Error("Body doesn't match")
 	}
 }
+
+func TestFlagMatches_Empty(t *testing.T) {
+	nullFlag := verbFlag(0)
+
+	if flagAny.Matches(nullFlag) {
+		t.Error("Should never match a null flag")
+	}
+}

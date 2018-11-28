@@ -658,6 +658,70 @@ func TestServeMux_MiddlewareOnly(t *testing.T) {
 	}
 }
 
+func TestServeMux_MiddlewareOnly_Panic(t *testing.T) {
+	s := NewServeMux()
+
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Error("Didn't panic")
+			return
+		}
+	}()
+
+	s.MiddlewareOnly("/", mid1, http.MethodOptions, "llama")
+}
+
+func TestServeMux_MiddlewareOnly_Nop(t *testing.T) {
+	s := NewServeMux()
+
+	s.MiddlewareOnly("/", mid1)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 0 {
+		t.Fatal("Wrong number of middlewares returned. Expected 0 got", len(mids))
+	}
+}
+
+func TestServeMux_MiddlewareExcept_Any(t *testing.T) {
+	s := NewServeMux()
+
+	s.MiddlewareExcept("/", mid1)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 1 {
+		t.Fatal("Wrong number of middlewares returned. Expected 1 got", len(mids))
+	}
+}
+
+func TestServeMux_MiddlewareExcept_None(t *testing.T) {
+	s := NewServeMux()
+
+	s.MiddlewareExcept("/", mid1,
+		http.MethodDelete,
+		http.MethodGet,
+		http.MethodHead,
+		http.MethodOptions,
+		http.MethodPatch,
+		http.MethodPost,
+		http.MethodConnect,
+		http.MethodPut,
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 0 {
+		t.Fatal("Wrong number of middlewares returned. Expected 0 got", len(mids))
+	}
+}
 func TestServeMux_MiddlewareDouble(t *testing.T) {
 	s := NewServeMux()
 

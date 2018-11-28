@@ -39,10 +39,9 @@ func (l childList) Search(pattern string) *Route {
 	return nil
 }
 
-type verbFlag uint16
+type verbFlag uint8
 
 const (
-	flagAny = ^verbFlag(0)
 	flagGet = verbFlag(1) << iota
 	flagHead
 	flagPost
@@ -51,7 +50,7 @@ const (
 	flagDelete
 	flagConnect
 	flagOptions
-	flagTrace
+	flagAny = ^verbFlag(0)
 )
 
 // Check if the verb matches the available flags
@@ -65,8 +64,6 @@ func (f verbFlag) Matches(v verbFlag) bool {
 
 func getVerbFlag(verb string) verbFlag {
 	switch verb {
-	case methodAny:
-		return flagAny
 	case http.MethodGet:
 		return flagGet
 	case http.MethodHead:
@@ -83,8 +80,6 @@ func getVerbFlag(verb string) verbFlag {
 		return flagConnect
 	case http.MethodOptions:
 		return flagOptions
-	case http.MethodTrace:
-		return flagTrace
 	default:
 		panic("powermux: getVerbFlag: not a valid http method: " + verb)
 	}
@@ -444,8 +439,8 @@ func (r *Route) MiddlewareOnly(m Middleware, verbs ...string) *Route {
 		f = f | getVerbFlag(verb)
 	}
 
-	// we don't check if this is equivalent to flagAny since any
-	// actually has more flags than there are verbs
+	// we don't check if this is equivalent to flagAny since a
+	// fully loaded flag set is the same as the flagAny
 
 	r.middleware = append(r.middleware, &middlewareVerb{
 		mid:  m,
