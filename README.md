@@ -101,6 +101,16 @@ mux.Route("/c").Middleware(midC)
 // then any handlers on Route("/a/b")
 ```
 
+Middleware can also be set up to selectively execute based on the HTTP method of the request.
+
+The middleware function variants `MiddlewareOnly` and `MiddlewareExcept` either set middleware to execute on only
+specified methods, on on all methods except the specified ones respectively.
+
+```go
+// don't run this middleware on OPTIONS requests
+mux.Route("/a").MiddlewareExcept(ignoreCorsMid, http.MethodOptions)
+```
+
 ## Host specific routes
 
 Unlike the Go default multiplexer, host specific routes need to be handled separately. Use the `*Host` variants of
