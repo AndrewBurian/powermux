@@ -1,5 +1,5 @@
-github.com/AndrewBurian/powermux v0.0.0-20170630202924-593c0f2b2e9f h1:mDjpP0beoxeoGMe3+aNPl9j4wZj//laBqvq8KONAj1s=
-github.com/AndrewBurian/powermux v0.0.0-20170630202924-593c0f2b2e9f/go.mod h1:DP40Ot1oOW0NhDC3qACRalhOSLjMx+ZolGBnoBje8LU=
+github.com/AndrewBurian/powermux v1.0.0 h1:7h8URK101sasliAs7a3VQxdFSEsbUV06x7gczPduXT8=
+github.com/AndrewBurian/powermux v1.0.0/go.mod h1:DP40Ot1oOW0NhDC3qACRalhOSLjMx+ZolGBnoBje8LU=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
