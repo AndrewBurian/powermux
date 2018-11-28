@@ -39,6 +39,62 @@ func (l childList) Search(pattern string) *Route {
 	return nil
 }
 
+type verbFlag uint16
+
+const (
+	flagAny = verbFlag(0xFFFF)
+	flagGet = verbFlag(1) << iota
+	flagHead
+	flagPost
+	flagPut
+	flagPatch
+	flagDelete
+	flagConnect
+	flagOptions
+	flagTrace
+)
+
+// Check if the verb matches the available flags
+// never match a zero flag
+func (f verbFlag) Matches(v verbFlag) bool {
+	if v == 0 {
+		return false
+	}
+	return f&v == v
+}
+
+func getVerbFlag(verb string) verbFlag {
+	switch verb {
+	case methodAny:
+		return flagAny
+	case http.MethodGet:
+		return flagGet
+	case http.MethodHead:
+		return flagHead
+	case http.MethodPost:
+		return flagPost
+	case http.MethodPut:
+		return flagPut
+	case http.MethodPatch:
+		return flagPatch
+	case http.MethodDelete:
+		return flagDelete
+	case http.MethodConnect:
+		return flagConnect
+	case http.MethodOptions:
+		return flagOptions
+	case http.MethodTrace:
+		return flagTrace
+	default:
+		panic("powermux: getVerbFlag: not a valid http method: " + verb)
+	}
+}
+
+type middlewareVerb struct {
+	mid  Middleware
+	verb verbFlag
+}
+
 var pathPartsPool = &sync.Pool{
 	New: func() interface{} {
 		return make([]string, 0, 5)
@@ -59,7 +115,7 @@ type Route struct {
 	// if we are a rooted sub tree '/dir/*'
 	isWildcard bool
 	// the array of middleware this node invokes
-	middleware []Middleware
+	middleware []*middlewareVerb
 	// child nodes
 	children childList
 	// child node for path parameters
@@ -75,7 +131,7 @@ type Route struct {
 func newRoute() *Route {
 	return &Route{
 		handlers:   make(map[string]http.Handler),
-		middleware: make([]Middleware, 0),
+		middleware: make([]*middlewareVerb, 0),
 		children:   make([]*Route, 0),
 	}
 }
@@ -112,12 +168,17 @@ func (r *Route) execute(ex *routeExecution, method, pattern string) {
 // this node matched, not if anything was added to the execution.
 func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) {
 
-	var curRoute *Route = r
+	curRoute := r
+	verb := getVerbFlag(method)
 
 	for {
 
-		// save all the middleware
-		ex.middleware = append(ex.middleware, curRoute.middleware...)
+		// save all the middleware for matching verbs
+		for i := range curRoute.middleware {
+			if curRoute.middleware[i].verb.Matches(verb) {
+				ex.middleware = append(ex.middleware, curRoute.middleware[i].mid)
+			}
+		}
 
 		// save not found handler
 		if h, ok := curRoute.handlers[notFound]; ok {
@@ -360,7 +421,10 @@ func (r *Route) getChildren() []*Route {
 //
 // Middlewares are executed if the path to the target route crosses this route.
 func (r *Route) Middleware(m Middleware) *Route {
-	r.middleware = append(r.middleware, m)
+	r.middleware = append(r.middleware, &middlewareVerb{
+		mid:  m,
+		verb: flagAny,
+	})
 	return r
 }
 
