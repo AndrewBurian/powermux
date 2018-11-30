@@ -128,20 +128,20 @@ func (s *ServeMux) Middleware(path string, middleware Middleware) {
 	s.Route(path).Middleware(middleware)
 }
 
-// MiddlewareOnly adds a middleware to this node, but will only be executed
+// MiddlewareFor adds a middleware to this node, but will only be executed
 // for requests with the verb specified.
 // Verbs are case sensitive, and should use the `http.Method*` constants.
 // Panics if any of the verbs provided are unknown.
-func (s *ServeMux) MiddlewareOnly(path string, middleware Middleware, verbs ...string) {
-	s.Route(path).MiddlewareOnly(middleware, verbs...)
+func (s *ServeMux) MiddlewareFor(path string, middleware Middleware, verbs ...string) {
+	s.Route(path).MiddlewareFor(middleware, verbs...)
 }
 
-// MiddlewareExcept adds a middleware to this node, but will only be executed
+// MiddlewareExceptFor adds a middleware to this node, but will only be executed
 // for requests that are not in the list of verbs.
 // Verbs are case sensitive, and should use the `http.Method*` constants.
 // Panics if any of the verbs provided are unknown.
-func (s *ServeMux) MiddlewareExcept(path string, middleware Middleware, verbs ...string) {
-	s.Route(path).MiddlewareExcept(middleware, verbs...)
+func (s *ServeMux) MiddlewareExceptFor(path string, middleware Middleware, verbs ...string) {
+	s.Route(path).MiddlewareExceptFor(middleware, verbs...)
 }
 
 // MiddlewareFunc registers a plain function as a middleware.

@@ -596,10 +596,10 @@ func TestServeMux_MiddlewareSingle(t *testing.T) {
 	}
 }
 
-func TestServeMux_MiddlewareExcept(t *testing.T) {
+func TestServeMux_MiddlewareExceptFor(t *testing.T) {
 	s := NewServeMux()
 
-	s.MiddlewareExcept("/", mid1, http.MethodOptions, http.MethodPatch)
+	s.MiddlewareExceptFor("/", mid1, http.MethodOptions, http.MethodPatch)
 	s.Handle("/", rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -627,10 +627,10 @@ func TestServeMux_MiddlewareExcept(t *testing.T) {
 	}
 }
 
-func TestServeMux_MiddlewareExceptOptions(t *testing.T) {
+func TestServeMux_MiddlewareExceptForOptions(t *testing.T) {
 	s := NewServeMux()
 
-	s.Route("/").MiddlewareExceptOptions(mid1)
+	s.Route("/").MiddlewareExceptForOptions(mid1)
 	s.Handle("/", rightHandler)
 
 	req := httptest.NewRequest(http.MethodOptions, "/", nil)
@@ -642,10 +642,10 @@ func TestServeMux_MiddlewareExceptOptions(t *testing.T) {
 	}
 }
 
-func TestServeMux_MiddlewareOnly(t *testing.T) {
+func TestServeMux_MiddlewareFor(t *testing.T) {
 	s := NewServeMux()
 
-	s.MiddlewareOnly("/", mid1, http.MethodOptions, http.MethodPatch)
+	s.MiddlewareFor("/", mid1, http.MethodOptions, http.MethodPatch)
 	s.Handle("/", rightHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -673,7 +673,7 @@ func TestServeMux_MiddlewareOnly(t *testing.T) {
 	}
 }
 
-func TestServeMux_MiddlewareOnly_Panic(t *testing.T) {
+func TestServeMux_MiddlewareFor_Panic(t *testing.T) {
 	s := NewServeMux()
 
 	defer func() {
@@ -684,13 +684,13 @@ func TestServeMux_MiddlewareOnly_Panic(t *testing.T) {
 		}
 	}()
 
-	s.MiddlewareOnly("/", mid1, http.MethodOptions, "llama")
+	s.MiddlewareFor("/", mid1, http.MethodOptions, "llama")
 }
 
-func TestServeMux_MiddlewareOnly_Nop(t *testing.T) {
+func TestServeMux_MiddlewareFor_Nop(t *testing.T) {
 	s := NewServeMux()
 
-	s.MiddlewareOnly("/", mid1)
+	s.MiddlewareFor("/", mid1)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
@@ -701,10 +701,10 @@ func TestServeMux_MiddlewareOnly_Nop(t *testing.T) {
 	}
 }
 
-func TestServeMux_MiddlewareExcept_Any(t *testing.T) {
+func TestServeMux_MiddlewareExceptFor_Any(t *testing.T) {
 	s := NewServeMux()
 
-	s.MiddlewareExcept("/", mid1)
+	s.MiddlewareExceptFor("/", mid1)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
@@ -715,10 +715,10 @@ func TestServeMux_MiddlewareExcept_Any(t *testing.T) {
 	}
 }
 
-func TestServeMux_MiddlewareExcept_None(t *testing.T) {
+func TestServeMux_MiddlewareExceptFor_None(t *testing.T) {
 	s := NewServeMux()
 
-	s.MiddlewareExcept("/", mid1,
+	s.MiddlewareExceptFor("/", mid1,
 		http.MethodDelete,
 		http.MethodGet,
 		http.MethodHead,

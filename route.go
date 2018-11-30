@@ -423,11 +423,11 @@ func (r *Route) Middleware(m Middleware) *Route {
 	return r
 }
 
-// MiddlewareOnly adds a middleware to this node, but will only be executed
+// MiddlewareFor adds a middleware to this node, but will only be executed
 // for requests with the verb specified.
 // Verbs are case sensitive, and should use the `http.Method*` constants.
 // Panics if any of the verbs provided are unknown.
-func (r *Route) MiddlewareOnly(m Middleware, verbs ...string) *Route {
+func (r *Route) MiddlewareFor(m Middleware, verbs ...string) *Route {
 
 	// Equivalent to none
 	if len(verbs) == 0 {
@@ -451,24 +451,24 @@ func (r *Route) MiddlewareOnly(m Middleware, verbs ...string) *Route {
 
 }
 
-// MiddlewareExcept adds a middleware to this node, but will only be executed
+// MiddlewareExceptFor adds a middleware to this node, but will only be executed
 // for requests that are not in the list of verbs.
 // Verbs are case sensitive, and should use the `http.Method*` constants.
 // Panics if any of the verbs provided are unknown.
-func (r *Route) MiddlewareExcept(m Middleware, verbs ...string) *Route {
+func (r *Route) MiddlewareExceptFor(m Middleware, verbs ...string) *Route {
 
 	// Equivalent to any
 	if len(verbs) == 0 {
 		return r.Middleware(m)
 	}
 
-	// build the list as if we are calculating Only
+	// build the list as if we are calculating For
 	f := verbFlag(0)
 	for _, verb := range verbs {
 		f = f | getVerbFlag(verb)
 	}
 
-	// then invert to get Except
+	// then invert to get ExceptFor
 	f = ^f
 
 	// Equivalent to none
@@ -485,10 +485,10 @@ func (r *Route) MiddlewareExcept(m Middleware, verbs ...string) *Route {
 
 }
 
-// MiddlewareExceptOptions is shorthand for MiddlewareExcept with
+// MiddlewareExceptForOptions is shorthand for MiddlewareExceptFor with
 // http.MethodOptions as the only excepted method
-func (r *Route) MiddlewareExceptOptions(m Middleware) *Route {
-	return r.MiddlewareExcept(m, http.MethodOptions)
+func (r *Route) MiddlewareExceptForOptions(m Middleware) *Route {
+	return r.MiddlewareExceptFor(m, http.MethodOptions)
 }
 
 // MiddlewareFunc registers a plain function as a middleware.
