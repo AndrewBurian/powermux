@@ -627,6 +627,21 @@ func TestServeMux_MiddlewareExcept(t *testing.T) {
 	}
 }
 
+func TestServeMux_MiddlewareExceptOptions(t *testing.T) {
+	s := NewServeMux()
+
+	s.Route("/").MiddlewareExceptOptions(mid1)
+	s.Handle("/", rightHandler)
+
+	req := httptest.NewRequest(http.MethodOptions, "/", nil)
+
+	_, mids, _ := s.HandlerAndMiddleware(req)
+
+	if len(mids) != 0 {
+		t.Fatal("Wrong number of middlewares returned. Expected 0, got", len(mids))
+	}
+}
+
 func TestServeMux_MiddlewareOnly(t *testing.T) {
 	s := NewServeMux()
 
