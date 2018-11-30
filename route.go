@@ -485,6 +485,12 @@ func (r *Route) MiddlewareExcept(m Middleware, verbs ...string) *Route {
 
 }
 
+// MiddlewareExceptOptions is shorthand for MiddlewareExcept with
+// http.MethodOptions as the only excepted method
+func (r *Route) MiddlewareExceptOptions(m Middleware) *Route {
+	return r.MiddlewareExcept(m, http.MethodOptions)
+}
+
 // MiddlewareFunc registers a plain function as a middleware.
 func (r *Route) MiddlewareFunc(m MiddlewareFunc) *Route {
 	return r.Middleware(MiddlewareFunc(m))
