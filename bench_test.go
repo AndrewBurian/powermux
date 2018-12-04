@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	MAX_WIDTH  = 500
-	MAX_DEPTH  = 100
-	FAN_DEPTH  = 4
-	FAN_SPREAD = 8
+	MaxWidth  = 500
+	MaxDepth  = 100
+	FanDepth  = 4
+	FanSpread = 8
 )
 
 type noopHandler struct{}
@@ -36,8 +36,8 @@ func BenchmarkSingleRoute(b *testing.B) {
 
 func BenchmarkShallowAndWide(b *testing.B) {
 	r := NewServeMux()
-	requests := make([]*http.Request, 0, MAX_WIDTH)
-	for i := 0; i < MAX_WIDTH; i++ {
+	requests := make([]*http.Request, 0, MaxWidth)
+	for i := 0; i < MaxWidth; i++ {
 		route := "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
 		r.Handle(route, emptyHandle)
 		requests = append(requests, httptest.NewRequest(http.MethodGet, route, nil))
@@ -45,7 +45,7 @@ func BenchmarkShallowAndWide(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		r.ServeHTTP(nil, requests[i%MAX_WIDTH])
+		r.ServeHTTP(nil, requests[i%MaxWidth])
 	}
 }
 
@@ -54,7 +54,7 @@ func BenchmarkShallowAndWide(b *testing.B) {
 func BenchmarkNarrowAndDeep(b *testing.B) {
 	r := NewServeMux()
 	var route string
-	for i := 0; i < MAX_DEPTH; i++ {
+	for i := 0; i < MaxDepth; i++ {
 		route += "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
 	}
 	r.Handle(route, emptyHandle)
@@ -67,7 +67,7 @@ func BenchmarkNarrowAndDeep(b *testing.B) {
 }
 
 func addFanRoutes(n int, r *Route) (routes []string) {
-	for i := 0; i < FAN_SPREAD; i++ {
+	for i := 0; i < FanSpread; i++ {
 		route := "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
 		r2 := r.Route(route).Any(emptyHandle)
 		routes = append(routes, route)
@@ -83,7 +83,7 @@ func addFanRoutes(n int, r *Route) (routes []string) {
 
 func BenchmarkFan(b *testing.B) {
 	r := NewServeMux()
-	routes := addFanRoutes(FAN_DEPTH, r.Route("/"))
+	routes := addFanRoutes(FanDepth, r.Route("/"))
 	requests := make([]*http.Request, 0, len(routes))
 	for _, route := range routes {
 		req := httptest.NewRequest(http.MethodGet, route, nil)
@@ -111,8 +111,8 @@ func BenchmarkSingleRouteParallel(b *testing.B) {
 
 func BenchmarkShallowAndWideParallel(b *testing.B) {
 	r := NewServeMux()
-	requests := make([]*http.Request, 0, MAX_WIDTH)
-	for i := 0; i < MAX_WIDTH; i++ {
+	requests := make([]*http.Request, 0, MaxWidth)
+	for i := 0; i < MaxWidth; i++ {
 		route := "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
 		r.Handle(route, emptyHandle)
 		requests = append(requests, httptest.NewRequest(http.MethodGet, route, nil))
@@ -121,7 +121,7 @@ func BenchmarkShallowAndWideParallel(b *testing.B) {
 
 	b.RunParallel(func(b *testing.PB) {
 		for i := 0; b.Next(); i++ {
-			r.ServeHTTP(nil, requests[i%MAX_WIDTH])
+			r.ServeHTTP(nil, requests[i%MaxWidth])
 		}
 	})
 
@@ -132,7 +132,7 @@ func BenchmarkShallowAndWideParallel(b *testing.B) {
 func BenchmarkNarrowAndDeepParallel(b *testing.B) {
 	r := NewServeMux()
 	var route string
-	for i := 0; i < MAX_DEPTH; i++ {
+	for i := 0; i < MaxDepth; i++ {
 		route += "/" + hex.EncodeToString([]byte(fmt.Sprint(i)))
 	}
 	r.Handle(route, emptyHandle)
@@ -148,7 +148,7 @@ func BenchmarkNarrowAndDeepParallel(b *testing.B) {
 
 func BenchmarkFanParallel(b *testing.B) {
 	r := NewServeMux()
-	routes := addFanRoutes(FAN_DEPTH, r.Route("/"))
+	routes := addFanRoutes(FanDepth, r.Route("/"))
 	requests := make([]*http.Request, 0, len(routes))
 	for _, route := range routes {
 		req := httptest.NewRequest(http.MethodGet, route, nil)
