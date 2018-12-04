@@ -62,8 +62,8 @@ func (f verbFlag) Matches(v verbFlag) bool {
 	return f&v == v
 }
 
-func getVerbFlag(verb string) verbFlag {
-	switch verb {
+func getVerbFlagForMethod(method string) verbFlag {
+	switch method {
 	case http.MethodGet:
 		return flagGet
 	case http.MethodHead:
@@ -81,11 +81,11 @@ func getVerbFlag(verb string) verbFlag {
 	case http.MethodOptions:
 		return flagOptions
 	default:
-		panic("powermux: getVerbFlag: not a valid http method: " + verb)
+		panic("powermux: getVerbFlag: not a valid http method: " + method)
 	}
 }
 
-type middlewareVerb struct {
+type middlewareForVerb struct {
 	mid  Middleware
 	verb verbFlag
 }
@@ -110,7 +110,7 @@ type Route struct {
 	// if we are a rooted sub tree '/dir/*'
 	isWildcard bool
 	// the array of middleware this node invokes
-	middleware []*middlewareVerb
+	middleware []*middlewareForVerb
 	// child nodes
 	children childList
 	// child node for path parameters
@@ -126,7 +126,7 @@ type Route struct {
 func newRoute() *Route {
 	return &Route{
 		handlers:   make(map[string]http.Handler),
-		middleware: make([]*middlewareVerb, 0),
+		middleware: make([]*middlewareForVerb, 0),
 		children:   make([]*Route, 0),
 	}
 }
@@ -164,7 +164,7 @@ func (r *Route) execute(ex *routeExecution, method, pattern string) {
 func (r *Route) getExecution(method string, pathParts []string, ex *routeExecution) {
 
 	curRoute := r
-	verb := getVerbFlag(method)
+	verb := getVerbFlagForMethod(method)
 
 	for {
 
@@ -416,7 +416,7 @@ func (r *Route) getChildren() []*Route {
 //
 // Middlewares are executed if the path to the target route crosses this route.
 func (r *Route) Middleware(m Middleware) *Route {
-	r.middleware = append(r.middleware, &middlewareVerb{
+	r.middleware = append(r.middleware, &middlewareForVerb{
 		mid:  m,
 		verb: flagAny,
 	})
@@ -436,13 +436,13 @@ func (r *Route) MiddlewareFor(m Middleware, verbs ...string) *Route {
 
 	f := verbFlag(0)
 	for _, verb := range verbs {
-		f = f | getVerbFlag(verb)
+		f = f | getVerbFlagForMethod(verb)
 	}
 
 	// we don't check if this is equivalent to flagAny since a
 	// fully loaded flag set is the same as the flagAny
 
-	r.middleware = append(r.middleware, &middlewareVerb{
+	r.middleware = append(r.middleware, &middlewareForVerb{
 		mid:  m,
 		verb: f,
 	})
@@ -465,7 +465,7 @@ func (r *Route) MiddlewareExceptFor(m Middleware, verbs ...string) *Route {
 	// build the list as if we are calculating For
 	f := verbFlag(0)
 	for _, verb := range verbs {
-		f = f | getVerbFlag(verb)
+		f = f | getVerbFlagForMethod(verb)
 	}
 
 	// then invert to get ExceptFor
@@ -476,7 +476,7 @@ func (r *Route) MiddlewareExceptFor(m Middleware, verbs ...string) *Route {
 		return r
 	}
 
-	r.middleware = append(r.middleware, &middlewareVerb{
+	r.middleware = append(r.middleware, &middlewareForVerb{
 		mid:  m,
 		verb: f,
 	})
