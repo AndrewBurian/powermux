@@ -32,6 +32,17 @@ var (
 	mid2         = dummyHandler("mid2")
 )
 
+var allMethods = []string{
+	http.MethodDelete,
+	http.MethodGet,
+	http.MethodHead,
+	http.MethodOptions,
+	http.MethodPatch,
+	http.MethodPost,
+	http.MethodConnect,
+	http.MethodPut,
+}
+
 // Ensures that parameter routes have lower precedence than absolute routes
 func TestServeMux_ParamPrecedence(t *testing.T) {
 	s := NewServeMux()
@@ -706,28 +717,21 @@ func TestServeMux_MiddlewareExceptFor_Any(t *testing.T) {
 
 	s.MiddlewareExceptFor("/", mid1)
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	for i := range allMethods {
+		req := httptest.NewRequest(allMethods[i], "/", nil)
 
-	_, mids, _ := s.HandlerAndMiddleware(req)
+		_, mids, _ := s.HandlerAndMiddleware(req)
 
-	if len(mids) != 1 {
-		t.Fatal("Wrong number of middlewares returned. Expected 1 got", len(mids))
+		if len(mids) != 1 {
+			t.Fatal("Wrong number of middlewares returned. Expected 1 got", len(mids))
+		}
 	}
 }
 
 func TestServeMux_MiddlewareExceptFor_None(t *testing.T) {
 	s := NewServeMux()
 
-	s.MiddlewareExceptFor("/", mid1,
-		http.MethodDelete,
-		http.MethodGet,
-		http.MethodHead,
-		http.MethodOptions,
-		http.MethodPatch,
-		http.MethodPost,
-		http.MethodConnect,
-		http.MethodPut,
-	)
+	s.MiddlewareExceptFor("/", mid1, allMethods...)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
