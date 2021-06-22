@@ -135,7 +135,13 @@ func newRoute() *Route {
 // a route.
 func (r *Route) execute(ex *routeExecution, method, pattern string) {
 
+	if strings.Contains(pattern, "//") {
+		ex.handler = r.badRequest("Invalid path")
+		return
+	}
+
 	pathParts := pathPartsPool.Get().([]string)[0:0]
+	defer pathPartsPool.Put(pathParts)
 	pathParts = append(pathParts, "")
 	start := 1
 	for i := 1; i < len(pattern); i++ {
@@ -146,6 +152,14 @@ func (r *Route) execute(ex *routeExecution, method, pattern string) {
 		}
 	}
 
+	// redirect trailing slashes
+	if pattern != "/" && strings.HasSuffix(pattern, "/") {
+		target := strings.TrimSuffix(pattern, "/")
+		ex.handler = http.RedirectHandler(target, http.StatusPermanentRedirect)
+		ex.pattern = target
+		return
+	}
+
 	// get the trailing path param
 	if pattern != "/" {
 		pathParts = append(pathParts, pattern[start:])
@@ -154,8 +168,6 @@ func (r *Route) execute(ex *routeExecution, method, pattern string) {
 	// Fill the execution
 	r.getExecution(method, pathParts, ex)
 
-	// return path parts
-	pathPartsPool.Put(pathParts)
 }
 
 // getExecution is a recursive step in the tree traversal. It checks to see if this node matches,

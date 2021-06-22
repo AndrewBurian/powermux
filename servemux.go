@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strings"
 )
 
 // ServeMux is the multiplexer for http requests
@@ -67,14 +66,6 @@ func NewServeMux() *ServeMux {
 
 func (s *ServeMux) getAll(r *http.Request, ex *routeExecution) {
 	path := r.URL.EscapedPath()
-
-	// Check for redirect
-	if path != "/" && strings.HasSuffix(path, "/") {
-		r.URL.Path = strings.TrimRight(path, "/")
-		ex.handler = http.RedirectHandler(r.URL.RequestURI(), http.StatusPermanentRedirect)
-		ex.pattern = r.URL.EscapedPath()
-		return
-	}
 
 	// fill it
 	if route, ok := s.hostRoutes[r.URL.Host]; ok {
