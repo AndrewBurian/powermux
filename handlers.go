@@ -1,6 +1,7 @@
 package powermux
 
 import (
+	"io"
 	"net/http"
 	"strings"
 )
@@ -50,4 +51,16 @@ func (r *Route) methodNotAllowed() http.Handler {
 	}
 
 	return nil
+}
+
+type badRequestHandler string
+
+func (brh badRequestHandler) ServeHTTP(res http.ResponseWriter, _ *http.Request) {
+	res.Header().Set("Content-Type", "text/plain")
+	res.WriteHeader(http.StatusBadRequest)
+	io.WriteString(res, string(brh))
+}
+
+func (r *Route) badRequest(errMsg string) http.Handler{
+	return badRequestHandler(errMsg)
 }
